@@ -1,0 +1,1684 @@
+---
+title: "G2C data"
+author: "<p>Jon Kawatachi</p>"
+date:  "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    theme: flatly
+    highlight: pygments
+    #css: styles.css
+    number_sections: false
+    fig_caption: true
+    toc: true
+      toc_depth: 2
+      toc_float: true
+      collapsed: false
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#Load library
+library(Hmisc)
+library(summarytools)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(likert)
+library(kableExtra)
+library(formattable)
+library(janitor)
+```
+
+# Content
+
+Studies: 
+Assessing Adolescents' Access to Food Assistance Programs during COVID-19 Pandemic - Adolescent Food Insecurity (Vanguard)
+The influence of health on employment among young people in Baltimore - HEYBMORE (G2C)
+
+1. Food Insecurity
+2. Anxiety
+3. PTSD / Trauma
+4. Depression
+5. Housing
+
+## 1. Food Insecurity
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Import G2C REDCap data for comparison to Vanguard
+redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
+redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
+redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
+redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
+redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
+redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
+# ETO data - Cycle 2
+eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo$cycle <- eto2_demo$`Cycle:`
+eto2_demo$name_first <- eto2_demo$`First Name`
+eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$gender <- eto2_demo$`Gender_3753`
+eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
+eto2_demo$race <- eto2_demo$`Race-Custom`
+eto2_demo$dob <- eto2_demo$DOB
+eto2_demo$source <- "eto2"
+eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog$subjectid <- eto2_prog$ID
+eto2_prog$program <- eto2_prog$`Current Program`
+# ETO data - Cycle 3
+eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo$cycle <- eto3_demo$`Cycle:`
+eto3_demo$name_first <- eto3_demo$`First Name`
+eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$gender <- eto3_demo$`Gender_3753`
+eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
+eto3_demo$race <- eto3_demo$`Race-Custom`
+eto3_demo$dob <- eto3_demo$DOB
+eto3_demo$source <- "eto3"
+eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog$subjectid <- eto3_prog$SubjectID
+eto3_prog$program <- eto3_prog$`Program Name`
+# Salesforce data
+salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact: First Name`
+salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce2$gender_sales <- salesforce2$`Gender`
+salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
+salesforce2$race_sales <- salesforce2$`Race`
+salesforce2$source_sales <- "salesforce"
+# Select variables from Salesforce data
+salesforce3 <- dplyr::select(salesforce2, name_first, name_last, gender_sales, ethnic_sales, race_sales, source_sales)
+# Select variables from ETO data
+eto2_demo_select <- dplyr::select(eto2_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto2_prog_select <- dplyr::select(eto2_prog, subjectid, `program`)
+eto2 <- left_join(eto2_demo_select, eto2_prog_select, by="subjectid")
+eto3_demo_select <- dplyr::select(eto3_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto3_prog_select <- dplyr::select(eto3_prog, subjectid, `program`)
+eto3 <- left_join(eto3_demo_select, eto3_prog_select, by="subjectid")
+# All ETO data
+eto_data <- rbind(eto2, eto3)
+# Merge REDCap data with ETO and Salesforce data
+redcap_g2c_raw3 <- left_join(redcap_g2c_raw2, eto_data, by=c("name_first", "name_last"))
+redcap_g2c_raw4 <- left_join(redcap_g2c_raw3, salesforce3, by=c("name_first", "name_last"))
+redcap_g2c_raw <- unique(redcap_g2c_raw4)
+redcap_g2c_raw$gender_merge <- if_else((is.na(redcap_g2c_raw$gender)), redcap_g2c_raw$gender_sales, redcap_g2c_raw$gender)
+# Manually replace missing gender and cycle data
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Porter" & redcap_g2c_raw$name_first=="Jared","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Johnson" & redcap_g2c_raw$name_first=="Jamyra","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Baker" & redcap_g2c_raw$name_first=="Amori","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","cycle.y"] <- "Cycle 2"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","program"] <- "Civic Works"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Gladney" & redcap_g2c_raw$name_first=="Kayla","gender_merge"] <- "Female"
+# Handle cycle 
+redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", redcap_g2c_raw$cycle.y)
+```
+
+```{r include=FALSE}
+# Import Vanguard data from REDCap project
+redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
+redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
+redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
+
+redcap_van_survey$arm <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
+```
+
+```{r include=FALSE}
+# Food variables for the Vanguard Study only
+food_van1 <- dplyr::select(redcap_van_survey, arm, q13a_foodsec,	q13b_foodsec,	q13c_foodsec,	q13d_foodsec, q13e_foodsec, q13f_foodsec, q13g_foodsec, q13h_foodsec, q13i_foodsec)
+# Assign labels to choices
+food_van1$q13a_foodsec <- if_else(food_van1$q13a_foodsec==2, "A lot", if_else(food_van1$q13a_foodsec==1,"Sometimes", if_else(food_van1$q13a_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13b_foodsec <- if_else(food_van1$q13b_foodsec==2, "A lot", if_else(food_van1$q13b_foodsec==1,"Sometimes", if_else(food_van1$q13b_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13c_foodsec <- if_else(food_van1$q13c_foodsec==2, "A lot", if_else(food_van1$q13c_foodsec==1,"Sometimes", if_else(food_van1$q13c_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13d_foodsec <- if_else(food_van1$q13d_foodsec==2, "A lot", if_else(food_van1$q13d_foodsec==1,"Sometimes", if_else(food_van1$q13d_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13e_foodsec <- if_else(food_van1$q13e_foodsec==2, "A lot", if_else(food_van1$q13e_foodsec==1,"Sometimes", if_else(food_van1$q13e_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13f_foodsec <- if_else(food_van1$q13f_foodsec==2, "A lot", if_else(food_van1$q13f_foodsec==1,"Sometimes", if_else(food_van1$q13f_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13g_foodsec <- if_else(food_van1$q13g_foodsec==2, "A lot", if_else(food_van1$q13g_foodsec==1,"Sometimes", if_else(food_van1$q13g_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13h_foodsec <- if_else(food_van1$q13h_foodsec==2, "A lot", if_else(food_van1$q13h_foodsec==1,"Sometimes", if_else(food_van1$q13h_foodsec==0,"Never", "Prefer not to answer")))
+food_van1$q13i_foodsec <- if_else(food_van1$q13i_foodsec==2, "A lot", if_else(food_van1$q13i_foodsec==1,"Sometimes", if_else(food_van1$q13i_foodsec==0,"Never", "Prefer not to answer")))
+# Assign variable names
+food_van1$"...did you worry that food at home would run out before you/your household got money to buy more?" <-food_van1$q13a_foodsec 
+food_van1$"...did the food that you/your household bought run out, and you didnt have money to get more?" <- food_van1$q13b_foodsec 
+food_van1$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"<- food_van1$q13c_foodsec 
+food_van1$"...were you not able to eat a balanced meal because you/your household didnt have enough money?"<- food_van1$q13d_foodsec 
+food_van1$"...did you have to eat less because you/your household didnt have enough money to buy food?" <- food_van1$q13e_foodsec 
+food_van1$"...has the size of your meals been cut because you/your household didnt have enough money for food?"<- food_van1$q13f_foodsec 
+food_van1$"...did you have to skip a meal because you/your household didnt have enough money for food?"<- food_van1$q13g_foodsec 
+food_van1$"...were you hungry but didnt eat because you/your household didnt have enough food?"<- food_van1$q13h_foodsec 
+food_van1$"...did you not eat for a whole day because you/your household didnt have enough money for food?"<- food_van1$q13i_foodsec 
+# Select only the new variable names
+food_van <- dplyr::select(food_van1, arm,
+ "...did you worry that food at home would run out before you/your household got money to buy more?" 
+,"...did the food that you/your household bought run out, and you didnt have money to get more?" 
+,"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"
+,"...were you not able to eat a balanced meal because you/your household didnt have enough money?"
+,"...did you have to eat less because you/your household didnt have enough money to buy food?" 
+,"...has the size of your meals been cut because you/your household didnt have enough money for food?"
+,"...did you have to skip a meal because you/your household didnt have enough money for food?"
+,"...were you hungry but didnt eat because you/your household didnt have enough food?"
+,"...did you not eat for a whole day because you/your household didnt have enough money for food?")
+
+# Assign an order to the variables
+food_van$"...did you worry that food at home would run out before you/your household got money to buy more?"  = factor(food_van$"...did you worry that food at home would run out before you/your household got money to buy more?" , levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...did the food that you/your household bought run out, and you didnt have money to get more?" = factor(food_van$"...did the food that you/your household bought run out, and you didnt have money to get more?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?" = factor(food_van$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...were you not able to eat a balanced meal because you/your household didnt have enough money?" = factor(food_van$"...were you not able to eat a balanced meal because you/your household didnt have enough money?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...did you have to eat less because you/your household didnt have enough money to buy food?" = factor(food_van$"...did you have to eat less because you/your household didnt have enough money to buy food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...has the size of your meals been cut because you/your household didnt have enough money for food?" = factor(food_van$"...has the size of your meals been cut because you/your household didnt have enough money for food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...did you have to skip a meal because you/your household didnt have enough money for food?" = factor(food_van$"...did you have to skip a meal because you/your household didnt have enough money for food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...were you hungry but didnt eat because you/your household didnt have enough food?" = factor(food_van$"...were you hungry but didnt eat because you/your household didnt have enough food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_van$"...did you not eat for a whole day because you/your household didnt have enough money for food?" = factor(food_van$"...did you not eat for a whole day because you/your household didnt have enough money for food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+```
+## {.tabset}
+### Vanguard graphs
+<p><strong>Vanguard Survey – Food Security Questions
+<br>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p>
+```{r echo=FALSE}
+# Vanguard Food Insecurity plot all variables
+food_van_likert1 <- likert(food_van[,2:5])
+plot(food_van_likert1, wrap=50)
+food_van_likert2 <- likert(food_van[,6:10])
+plot(food_van_likert2, wrap=50)
+
+```
+<p><strong>Vanguard Survey – Food Security Questions, by Youth Arm variable
+<br>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p>
+```{r echo=FALSE}
+# Vanguard food questions, BY CATEGORY
+food_van_cat1 <- likert(food_van[,2:4], grouping=food_van$arm)
+plot(food_van_cat1, wrap=50, col= c("darkseagreen", "azure2", "dodgerblue4"))
+food_van_cat1 <- likert(food_van[,5:7], grouping=food_van$arm)
+plot(food_van_cat1, wrap=50, col= c("darkseagreen", "azure2", "dodgerblue4"))
+food_van_cat1 <- likert(food_van[,8:10], grouping=food_van$arm)
+plot(food_van_cat1, wrap=50, col= c("darkseagreen", "azure2", "dodgerblue4"))
+```
+
+### Vanguard Tables
+```{r echo=FALSE}
+# Table of Vanguard Food Insequrity variables
+foodvan_table1 <- food_van1 %>% tabyl(arm, q13a_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table1 <- dplyr::select(foodvan_table1, arm,"NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table2 <- food_van1 %>% tabyl(arm, q13b_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table2 <- dplyr::select(foodvan_table2, arm,"NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table3 <- food_van1 %>% tabyl(arm, q13c_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table3 <- dplyr::select(foodvan_table3, arm, "NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table4 <- food_van1 %>% tabyl(arm, q13d_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table4 <- dplyr::select(foodvan_table4, arm, "NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table5 <- food_van1 %>% tabyl(arm, q13e_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table5 <- dplyr::select(foodvan_table5, arm,"NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table6 <- food_van1 %>% tabyl(arm, q13f_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table6 <- dplyr::select(foodvan_table6, arm,"NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table7 <- food_van1 %>% tabyl(arm, q13g_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table7 <- dplyr::select(foodvan_table7, arm, "NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table8 <- food_van1 %>% tabyl(arm, q13h_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table8 <- dplyr::select(foodvan_table8, arm, "NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodvan_table9 <- food_van1 %>% tabyl(arm, q13i_foodsec) %>% adorn_totals(c("row", "col"))
+foodvan_table9 <- dplyr::select(foodvan_table9, arm, "NA_", "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+```
+<br>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p></strong>
+<br>
+<strong>"...did you worry that food at home would run out before you/your household got money to buy more?" </strong>
+```{r echo=FALSE}
+formattable(foodvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did the food that you/your household bought run out, and you didnt have money to get more?" </strong>
+```{r echo=FALSE}
+formattable(foodvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"</strong>
+```{r echo=FALSE}
+formattable(foodvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...were you not able to eat a balanced meal because you/your household didnt have enough money?"</strong>
+```{r echo=FALSE}
+formattable(foodvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did you have to eat less because you/your household didnt have enough money to buy food?"  </strong>
+```{r echo=FALSE}
+formattable(foodvan_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...has the size of your meals been cut because you/your household didnt have enough money for food?"</strong>
+```{r echo=FALSE}
+formattable(foodvan_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did you have to skip a meal because you/your household didnt have enough money for food?"</strong>
+```{r echo=FALSE}
+formattable(foodvan_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...were you hungry but didnt eat because you/your household didnt have enough food?"</strong>
+```{r echo=FALSE}
+formattable(foodvan_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did you not eat for a whole day because you/your household didnt have enough money for food?"</strong>
+```{r echo=FALSE}
+formattable(foodvan_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+```{r echo=FALSE}
+# food for G2C Study only
+food_g2c1 <- dplyr::select(redcap_g2c_raw, cycle1, q20a,	q20b,	q20c,	q20d, q20e, q20f, q20g, q20h, q20i)
+# Assign labels to choices
+food_g2c1$q20a <- if_else(food_g2c1$q20a==2, "A lot", if_else(food_g2c1$q20a==1,"Sometimes", if_else(food_g2c1$q20a==0,"Never", "Prefer not to answer")))
+food_g2c1$q20b <- if_else(food_g2c1$q20b==2, "A lot", if_else(food_g2c1$q20b==1,"Sometimes", if_else(food_g2c1$q20b==0,"Never", "Prefer not to answer")))
+food_g2c1$q20c <- if_else(food_g2c1$q20c==2, "A lot", if_else(food_g2c1$q20c==1,"Sometimes", if_else(food_g2c1$q20c==0,"Never", "Prefer not to answer")))
+food_g2c1$q20d <- if_else(food_g2c1$q20d==2, "A lot", if_else(food_g2c1$q20d==1,"Sometimes", if_else(food_g2c1$q20d==0,"Never", "Prefer not to answer")))
+food_g2c1$q20e <- if_else(food_g2c1$q20e==2, "A lot", if_else(food_g2c1$q20e==1,"Sometimes", if_else(food_g2c1$q20e==0,"Never", "Prefer not to answer")))
+food_g2c1$q20f <- if_else(food_g2c1$q20f==2, "A lot", if_else(food_g2c1$q20f==1,"Sometimes", if_else(food_g2c1$q20f==0,"Never", "Prefer not to answer")))
+food_g2c1$q20g <- if_else(food_g2c1$q20g==2, "A lot", if_else(food_g2c1$q20g==1,"Sometimes", if_else(food_g2c1$q20g==0,"Never", "Prefer not to answer")))
+food_g2c1$q20h <- if_else(food_g2c1$q20h==2, "A lot", if_else(food_g2c1$q20h==1,"Sometimes", if_else(food_g2c1$q20h==0,"Never", "Prefer not to answer")))
+food_g2c1$q20i <- if_else(food_g2c1$q20i==2, "A lot", if_else(food_g2c1$q20i==1,"Sometimes", if_else(food_g2c1$q20i==0,"Never", "Prefer not to answer")))
+# Assign variable names
+food_g2c1$"...did you worry that food at home would run out before you/your household got money to buy more?" <-food_g2c1$q20a 
+food_g2c1$"...did the food that you/your household bought run out, and you didnt have money to get more?" <- food_g2c1$q20b 
+food_g2c1$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"<- food_g2c1$q20c 
+food_g2c1$"...were you not able to eat a balanced meal because you/your household didnt have enough money?"<- food_g2c1$q20d 
+food_g2c1$"...did you have to eat less because you/your household didnt have enough money to buy food?" <- food_g2c1$q20e 
+food_g2c1$"...has the size of your meals been cut because you/your household didnt have enough money for food?"<- food_g2c1$q20f 
+food_g2c1$"...did you have to skip a meal because you/your household didnt have enough money for food?"<- food_g2c1$q20g 
+food_g2c1$"...were you hungry but didnt eat because you/your household didnt have enough food?"<- food_g2c1$q20h 
+food_g2c1$"...did you not eat for a whole day because you/your household didnt have enough money for food?"<- food_g2c1$q20i 
+# Select only the new variable names
+food_g2c <- dplyr::select(food_g2c1, cycle1,
+ "...did you worry that food at home would run out before you/your household got money to buy more?" 
+,"...did the food that you/your household bought run out, and you didnt have money to get more?" 
+,"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"
+,"...were you not able to eat a balanced meal because you/your household didnt have enough money?"
+,"...did you have to eat less because you/your household didnt have enough money to buy food?" 
+,"...has the size of your meals been cut because you/your household didnt have enough money for food?"
+,"...did you have to skip a meal because you/your household didnt have enough money for food?"
+,"...were you hungry but didnt eat because you/your household didnt have enough food?"
+,"...did you not eat for a whole day because you/your household didnt have enough money for food?")
+# Assign an order to the variables
+food_g2c$"...did you worry that food at home would run out before you/your household got money to buy more?"  = factor(food_g2c$"...did you worry that food at home would run out before you/your household got money to buy more?" , levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...did the food that you/your household bought run out, and you didnt have money to get more?" = factor(food_g2c$"...did the food that you/your household bought run out, and you didnt have money to get more?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?" = factor(food_g2c$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...were you not able to eat a balanced meal because you/your household didnt have enough money?" = factor(food_g2c$"...were you not able to eat a balanced meal because you/your household didnt have enough money?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...did you have to eat less because you/your household didnt have enough money to buy food?" = factor(food_g2c$"...did you have to eat less because you/your household didnt have enough money to buy food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...has the size of your meals been cut because you/your household didnt have enough money for food?" = factor(food_g2c$"...has the size of your meals been cut because you/your household didnt have enough money for food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...did you have to skip a meal because you/your household didnt have enough money for food?" = factor(food_g2c$"...did you have to skip a meal because you/your household didnt have enough money for food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...were you hungry but didnt eat because you/your household didnt have enough food?" = factor(food_g2c$"...were you hungry but didnt eat because you/your household didnt have enough food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+food_g2c$"...did you not eat for a whole day because you/your household didnt have enough money for food?" = factor(food_g2c$"...did you not eat for a whole day because you/your household didnt have enough money for food?", levels = c("Never", "Sometimes", "A lot"), ordered = TRUE)
+```
+### G2C graphs
+<p><strong>G2C Survey – Food Insecurity Questions
+<br><stong>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p>
+```{r echo=FALSE}
+# G2C Food Insecurity plot all variables
+food_g2c_likert1 <- likert(food_g2c[,2:5])
+plot(food_g2c_likert1, wrap=50)
+food_g2c_likert2 <- likert(food_g2c[,6:10])
+plot(food_g2c_likert2, wrap=50)
+```
+<p><strong>G2C Survey – Food Insecurity Questions, <u>by Youth Arm variable</u>
+<br>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p>
+
+```{r echo=FALSE}
+# G2C food questions, BY CATEGORY
+food_g2c_cat1 <- likert(food_g2c[,2:4], grouping=food_g2c$arm)
+plot(food_g2c_cat1, wrap=50, col= c("darkseagreen", "azure2", "dodgerblue4"))
+food_g2c_cat1 <- likert(food_g2c[,5:7], grouping=food_g2c$arm)
+plot(food_g2c_cat1, wrap=50, col= c("darkseagreen", "azure2", "dodgerblue4"))
+food_g2c_cat1 <- likert(food_g2c[,8:10], grouping=food_g2c$arm)
+plot(food_g2c_cat1, wrap=50, col= c("darkseagreen", "azure2", "dodgerblue4"))
+```
+
+### G2C Tables
+```{r echo=FALSE}
+# Table of g2cguard food variables
+foodg2c_table1 <- food_g2c1 %>% tabyl(cycle1, q20a) %>% adorn_totals(c("row", "col"))
+foodg2c_table1 <- dplyr::select(foodg2c_table1, cycle1,"Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table2 <- food_g2c1 %>% tabyl(cycle1, q20b) %>% adorn_totals(c("row", "col"))
+foodg2c_table2 <- dplyr::select(foodg2c_table2, cycle1,"Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table3 <- food_g2c1 %>% tabyl(cycle1, q20c) %>% adorn_totals(c("row", "col"))
+foodg2c_table3 <- dplyr::select(foodg2c_table3, cycle1, "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table4 <- food_g2c1 %>% tabyl(cycle1, q20d) %>% adorn_totals(c("row", "col"))
+foodg2c_table4 <- dplyr::select(foodg2c_table4, cycle1, "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table5 <- food_g2c1 %>% tabyl(cycle1, q20e) %>% adorn_totals(c("row", "col"))
+foodg2c_table5 <- dplyr::select(foodg2c_table5, cycle1, "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table6 <- food_g2c1 %>% tabyl(cycle1, q20f) %>% adorn_totals(c("row", "col"))
+foodg2c_table6 <- dplyr::select(foodg2c_table6, cycle1,"Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table7 <- food_g2c1 %>% tabyl(cycle1, q20g) %>% adorn_totals(c("row", "col"))
+foodg2c_table7 <- dplyr::select(foodg2c_table7, cycle1, "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table8 <- food_g2c1 %>% tabyl(cycle1, q20h) %>% adorn_totals(c("row", "col"))
+foodg2c_table8 <- dplyr::select(foodg2c_table8, cycle1, "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+foodg2c_table9 <- food_g2c1 %>% tabyl(cycle1, q20i) %>% adorn_totals(c("row", "col"))
+foodg2c_table9 <- dplyr::select(foodg2c_table9, cycle1, "Prefer not to answer", "Never", "Sometimes", "A lot", Total)
+```
+<br>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p></strong>
+<br>
+<strong>"...did you worry that food at home would run out before you/your household got money to buy more?" </strong>
+```{r echo=FALSE}
+formattable(foodg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did the food that you/your household bought run out, and you didnt have money to get more?" </strong>
+```{r echo=FALSE}
+formattable(foodg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"</strong>
+```{r echo=FALSE}
+formattable(foodg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...were you not able to eat a balanced meal because you/your household didnt have enough money?"</strong>
+```{r echo=FALSE}
+formattable(foodg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did you have to eat less because you/your household didnt have enough money to buy food?"  </strong>
+```{r echo=FALSE}
+formattable(foodg2c_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...has the size of your meals been cut because you/your household didnt have enough money for food?"</strong>
+```{r echo=FALSE}
+formattable(foodg2c_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did you have to skip a meal because you/your household didnt have enough money for food?"</strong>
+```{r echo=FALSE}
+formattable(foodg2c_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...were you hungry but didnt eat because you/your household didnt have enough food?"</strong>
+```{r echo=FALSE}
+formattable(foodg2c_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"...did you not eat for a whole day because you/your household didnt have enough money for food?"</strong>
+```{r echo=FALSE}
+formattable(foodg2c_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+### Vanguard vs. G2C
+<br>"The next set of questions will ask you about food in your household.
+<br><strong> How often..."</p>
+```{r echo=FALSE}
+# Merge the vanguard and g2c data for comparison
+food_g2c_merge <- dplyr::select(food_g2c, -cycle1)
+food_g2c_merge$study <- "Grads2Careers"
+food_van_merge <- dplyr::select(food_van, -arm)
+food_van_merge$study <- "Vanguard"
+food_merged <- rbind(food_g2c_merge,food_van_merge)
+food_merged1 <- dplyr::select(food_merged,  "...did you worry that food at home would run out before you/your household got money to buy more?" 
+,"...did the food that you/your household bought run out, and you didnt have money to get more?" 
+,"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"
+,"...were you not able to eat a balanced meal because you/your household didnt have enough money?"
+,"...did you have to eat less because you/your household didnt have enough money to buy food?" 
+,"...has the size of your meals been cut because you/your household didnt have enough money for food?"
+,"...did you have to skip a meal because you/your household didnt have enough money for food?"
+,"...were you hungry but didnt eat because you/your household didnt have enough food?"
+,"...did you not eat for a whole day because you/your household didnt have enough money for food?")
+# MERGED food Plot by Study
+food_merged_cat1 <- likert(food_merged1[,1:3], grouping=food_merged$study)
+plot(food_merged_cat1)
+food_merged_cat2 <- likert(food_merged1[,4:6], grouping=food_merged$study)
+plot(food_merged_cat2)
+food_merged_cat3 <- likert(food_merged1[,7:9], grouping=food_merged$study)
+plot(food_merged_cat3)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+####################### Vanguard ####################
+# Select Vanguard food variables and create new variables for total score and dichotomous variable
+food_van_total <- dplyr::select(redcap_van_survey, arm, q13a_foodsec,	q13b_foodsec,	q13c_foodsec,	q13d_foodsec, q13e_foodsec, q13f_foodsec, q13g_foodsec, q13h_foodsec, q13i_foodsec)
+# Create food Score w/ and w/o "Prefer not to answer"
+food_van_total$food_total <- food_van_total$q13a_foodsec + food_van_total$q13b_foodsec + food_van_total$q13c_foodsec + food_van_total$q13d_foodsec + food_van_total$q13e_foodsec + food_van_total$q13f_foodsec + food_van_total$q13g_foodsec + food_van_total$q13h_foodsec + food_van_total$q13i_foodsec 
+food_van_total$food_total_no_refused <- ifelse(food_van_total$food_total>18, NA, food_van_total$food_total)
+# Flagged if score 2 or greater
+food_van_total$food_flagged <- if_else(food_van_total$food_total>=2, 1,0)
+# Rename Vanguard variables
+food_van_total$"...did you worry that food at home would run out before you/your household got money to buy more?" <-food_van_total$q13a_foodsec 
+food_van_total$"...did the food that you/your household bought run out, and you didnt have money to get more?" <- food_van_total$q13b_foodsec 
+food_van_total$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"<- food_van_total$q13c_foodsec 
+food_van_total$"...were you not able to eat a balanced meal because you/your household didnt have enough money?"<- food_van_total$q13d_foodsec 
+food_van_total$"...did you have to eat less because you/your household didnt have enough money to buy food?" <- food_van_total$q13e_foodsec 
+food_van_total$"...has the size of your meals been cut because you/your household didnt have enough money for food?"<- food_van_total$q13f_foodsec 
+food_van_total$"...did you have to skip a meal because you/your household didnt have enough money for food?"<- food_van_total$q13g_foodsec 
+food_van_total$"...were you hungry but didnt eat because you/your household didnt have enough food?"<- food_van_total$q13h_foodsec 
+food_van_total$"...did you not eat for a whole day because you/your household didnt have enough money for food?"<- food_van_total$q13i_foodsec 
+#Select only the new variable names
+food_van_totals <- dplyr::select(food_van_total, food_total, food_total_no_refused, food_flagged,
+ "...did you worry that food at home would run out before you/your household got money to buy more?" 
+,"...did the food that you/your household bought run out, and you didnt have money to get more?" 
+,"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"
+,"...were you not able to eat a balanced meal because you/your household didnt have enough money?"
+,"...did you have to eat less because you/your household didnt have enough money to buy food?" 
+,"...has the size of your meals been cut because you/your household didnt have enough money for food?"
+,"...did you have to skip a meal because you/your household didnt have enough money for food?"
+,"...were you hungry but didnt eat because you/your household didnt have enough food?"
+,"...did you not eat for a whole day because you/your household didnt have enough money for food?")
+
+######################## G2C #######################
+# Add variable names, total and select new variables for G2C data
+food_g2c_total <- dplyr::select(redcap_g2c_raw, cycle.y, q20a,	q20b,	q20c,	q20d, q20e, q20f, q20g, q20h, q20i)
+# Create a food score w/ and w/o "Prefer not to answer"
+food_g2c_total$food_total <- food_g2c_total$q20a + food_g2c_total$q20b + food_g2c_total$q20c + food_g2c_total$q20d + food_g2c_total$q20e + food_g2c_total$q20f + food_g2c_total$q20g + food_g2c_total$q20h + food_g2c_total$q20i
+food_g2c_total$food_total_no_refused <- ifelse(food_g2c_total$food_total>18, NA, food_g2c_total$food_total)
+# Flagged if score 2 or greater
+food_g2c_total$food_flagged <- if_else(food_g2c_total$food_total>=2, 1,0)
+# Rename G2C variable
+food_g2c_total$"...did you worry that food at home would run out before you/your household got money to buy more?" <-food_g2c_total$q20a
+food_g2c_total$"...did the food that you/your household bought run out, and you didnt have money to get more?" <- food_g2c_total$q20b
+food_g2c_total$"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"<- food_g2c_total$q20c
+food_g2c_total$"...were you not able to eat a balanced meal because you/your household didnt have enough money?"<- food_g2c_total$q20d
+food_g2c_total$"...did you have to eat less because you/your household didnt have enough money to buy food?" <- food_g2c_total$q20e 
+food_g2c_total$"...has the size of your meals been cut because you/your household didnt have enough money for food?"<- food_g2c_total$q20f
+food_g2c_total$"...did you have to skip a meal because you/your household didnt have enough money for food?"<- food_g2c_total$q20g 
+food_g2c_total$"...were you hungry but didnt eat because you/your household didnt have enough food?"<- food_g2c_total$q20h
+food_g2c_total$"...did you not eat for a whole day because you/your household didnt have enough money for food?"<- food_g2c_total$q20i
+#Select only the new variable names
+food_g2c_totals <- dplyr::select(food_g2c_total, food_total, food_total_no_refused, food_flagged, "...did you worry that food at home would run out before you/your household got money to buy more?" 
+,"...did the food that you/your household bought run out, and you didnt have money to get more?" 
+,"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"
+,"...were you not able to eat a balanced meal because you/your household didnt have enough money?"
+,"...did you have to eat less because you/your household didnt have enough money to buy food?" 
+,"...has the size of your meals been cut because you/your household didnt have enough money for food?"
+,"...did you have to skip a meal because you/your household didnt have enough money for food?"
+,"...were you hungry but didnt eat because you/your household didnt have enough food?"
+,"...did you not eat for a whole day because you/your household didnt have enough money for food?") 
+```
+
+```{r echo=FALSE}
+# Combine the studies
+food1 <- as.data.frame(ftable(food_van_totals$food_total_no_refused))
+food1$Vanguard <- food1$Freq
+food_van_totals$study <-"Vanguard"
+
+food2 <- as.data.frame(ftable(food_g2c_totals$food_total_no_refused))
+food2$G2C <- food2$Freq
+food_g2c_totals$study <- "G2C"
+
+food_total_merged <- rbind(food_g2c_totals, food_van_totals)
+```
+<strong>Histogram of Food Security Scores (total of 9 variables, range:0-18): Vanguard vs. G2C </strong>
+```{r echo=FALSE}
+# Create a grouped bar chart
+food1$subgroup <- "Vanguard"
+food1$group <- food1$Var1
+food1$values <- food1$Freq
+food1a <- dplyr::select(food1, subgroup, group, values)
+food2$subgroup <- "G2c"
+food2$group <- food2$Var1
+food2$values <- food2$Freq
+food2a <- dplyr::select(food2, subgroup, group, values)
+food3 <- rbind(food1a, food2a)
+
+ggplot(food3, 
+       aes(x=group, 
+           y=values, 
+           fill=subgroup)) + 
+    geom_bar(position="dodge", 
+             stat="identity")
+        
+```
+
+```{r echo=FALSE}
+food_total_merged1 <- dplyr::filter(food_total_merged, !is.na(food_total) & food_total <=30)
+histogram(~ food_total | study,
+          main = "Food Security Score, Percent Comparison of Vanguard and G2C",
+          xlab = "Score",
+          data=food_total_merged1,
+          type="percent",
+          layout=c(1,2))      #  columns and rows of individual plots
+```
+
+```{r echo=FALSE}
+wilcox.test(food_total_merged$food_total_no_refused ~ food_total_merged$study)
+
+t.test(food_total_merged$food_total_no_refused ~ food_total_merged$study)
+```
+Food Security Score comparison
+```{r echo=FALSE}
+boxplot(food_total_merged$food_total_no_refused ~ food_total_merged$study, col="#69b3a2" , ylab="Total food Score", xlab = "Study")
+```
+
+
+## 2. Anxiety
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Import G2C REDCap data for comparison to Vanguard
+redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
+redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
+redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
+redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
+redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
+redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
+# ETO data - Cycle 2
+eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo$cycle <- eto2_demo$`Cycle:`
+eto2_demo$name_first <- eto2_demo$`First Name`
+eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$gender <- eto2_demo$`Gender_3753`
+eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
+eto2_demo$race <- eto2_demo$`Race-Custom`
+eto2_demo$dob <- eto2_demo$DOB
+eto2_demo$source <- "eto2"
+eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog$subjectid <- eto2_prog$ID
+eto2_prog$program <- eto2_prog$`Current Program`
+# ETO data - Cycle 3
+eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo$cycle <- eto3_demo$`Cycle:`
+eto3_demo$name_first <- eto3_demo$`First Name`
+eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$gender <- eto3_demo$`Gender_3753`
+eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
+eto3_demo$race <- eto3_demo$`Race-Custom`
+eto3_demo$dob <- eto3_demo$DOB
+eto3_demo$source <- "eto3"
+eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog$subjectid <- eto3_prog$SubjectID
+eto3_prog$program <- eto3_prog$`Program Name`
+# Salesforce data
+salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact: First Name`
+salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce2$gender_sales <- salesforce2$`Gender`
+salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
+salesforce2$race_sales <- salesforce2$`Race`
+salesforce2$source_sales <- "salesforce"
+# Select variables from Salesforce data
+salesforce3 <- dplyr::select(salesforce2, name_first, name_last, gender_sales, ethnic_sales, race_sales, source_sales)
+# Select variables from ETO data
+eto2_demo_select <- dplyr::select(eto2_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto2_prog_select <- dplyr::select(eto2_prog, subjectid, `program`)
+eto2 <- left_join(eto2_demo_select, eto2_prog_select, by="subjectid")
+eto3_demo_select <- dplyr::select(eto3_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto3_prog_select <- dplyr::select(eto3_prog, subjectid, `program`)
+eto3 <- left_join(eto3_demo_select, eto3_prog_select, by="subjectid")
+# All ETO data
+eto_data <- rbind(eto2, eto3)
+# Merge REDCap data with ETO and Salesforce data
+redcap_g2c_raw3 <- left_join(redcap_g2c_raw2, eto_data, by=c("name_first", "name_last"))
+redcap_g2c_raw4 <- left_join(redcap_g2c_raw3, salesforce3, by=c("name_first", "name_last"))
+redcap_g2c_raw <- unique(redcap_g2c_raw4)
+redcap_g2c_raw$gender_merge <- if_else((is.na(redcap_g2c_raw$gender)), redcap_g2c_raw$gender_sales, redcap_g2c_raw$gender)
+# Manually replace missing gender and cycle data
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Porter" & redcap_g2c_raw$name_first=="Jared","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Johnson" & redcap_g2c_raw$name_first=="Jamyra","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Baker" & redcap_g2c_raw$name_first=="Amori","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","cycle.y"] <- "Cycle 2"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","program"] <- "Civic Works"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Gladney" & redcap_g2c_raw$name_first=="Kayla","gender_merge"] <- "Female"
+# Handle cycle 
+redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", redcap_g2c_raw$cycle.y)
+```
+
+```{r include=FALSE}
+# Import Vanguard data from REDCap project
+redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
+redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
+redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
+
+redcap_van_survey$arm1 <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
+
+redcap_van_survey$arm<- ifelse(is.na(redcap_van_survey$arm1), "NA", redcap_van_survey$arm1)
+```
+
+```{r include=FALSE}
+# Anxiety for Vanguard Study only
+anxiety_van1 <- dplyr::select(redcap_van_survey, arm, q22a_anxiety, q22b_anxiety, q22c_anxiety, q22d_anxiety) 
+# Assign labels to choices             
+anxiety_van1$q22a_anxiety <- if_else(anxiety_van1$q22a_anxiety==4, "Almost always", if_else(anxiety_van1$q22a_anxiety==3,"Often", if_else(anxiety_van1$q22a_anxiety==2,"Sometimes",      
+if_else(anxiety_van1$q22a_anxiety==1,"Almost never", if_else(anxiety_van1$q22a_anxiety==0,"Never", "Prefer not to answer")))))
+anxiety_van1$q22b_anxiety <- if_else(anxiety_van1$q22b_anxiety==4, "Almost always", if_else(anxiety_van1$q22b_anxiety==3,"Often", if_else(anxiety_van1$q22b_anxiety==2,"Sometimes",      
+if_else(anxiety_van1$q22b_anxiety==1,"Almost never", if_else(anxiety_van1$q22b_anxiety==0,"Never", "Prefer not to answer")))))
+anxiety_van1$q22c_anxiety <- if_else(anxiety_van1$q22c_anxiety==4, "Almost always", if_else(anxiety_van1$q22c_anxiety==3,"Often", if_else(anxiety_van1$q22c_anxiety==2,"Sometimes",      
+if_else(anxiety_van1$q22c_anxiety==1,"Almost never", if_else(anxiety_van1$q22c_anxiety==0,"Never", "Prefer not to answer")))))
+anxiety_van1$q22d_anxiety <- if_else(anxiety_van1$q22d_anxiety==4, "Almost always", if_else(anxiety_van1$q22d_anxiety==3,"Often", if_else(anxiety_van1$q22d_anxiety==2,"Sometimes",      
+if_else(anxiety_van1$q22d_anxiety==1,"Almost never", if_else(anxiety_van1$q22d_anxiety==0,"Never", "Prefer not to answer")))))
+#Assign variable names                   
+anxiety_van1$"I felt like something awful might happen"<- anxiety_van1$q22a_anxiety 
+anxiety_van1$"I felt nervous"<- anxiety_van1$q22b_anxiety 
+anxiety_van1$"I felt worried"<- anxiety_van1$q22c_anxiety 
+anxiety_van1$"I worried when I was at home" <- anxiety_van1$q22d_anxiety
+#Select only the new variable names
+anxiety_van <- dplyr::select(anxiety_van1, arm,"I felt like something awful might happen","I felt nervous","I felt worried","I worried when I was at home") 
+#Assign an order to the variables
+anxiety_van$"I felt like something awful might happen" = factor(anxiety_van$"I felt like something awful might happen", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+anxiety_van$"I felt nervous" = factor(anxiety_van$"I felt nervous", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+anxiety_van$"I felt worried" = factor(anxiety_van$"I felt worried", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+anxiety_van$"I worried when I was at home" = factor(anxiety_van$"I worried when I was at home", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+```
+## {.tabset}
+### Vanguard graphs
+<p><strong>Vanguard Survey – Anxiety Questions
+<br>"Please answer the following questions based on how you felt in the past 7 days."</p>
+```{r echo=FALSE}
+# Vanguard anxiety Plot all variables
+anxiety_van_likert <- likert(anxiety_van[,2:5])
+plot(anxiety_van_likert, wrap=25)
+```
+<p><strong>Vanguard Survey – Anxiety Questions, by Youth Arm variable
+<br>"Please answer the following questions based on how you felt in the past 7 days."</p>
+```{r echo=FALSE}
+# Vanguard anxiety questions, BY CATEGORY
+anxiety_van_cat1 <- likert(anxiety_van[,2:5], grouping=anxiety_van$arm)
+plot(anxiety_van_cat1, wrap=50)
+```
+
+### Vanguard Tables
+```{r echo=FALSE}
+# Table of Vanguard anxiety variables
+anxietyvan_table1 <- anxiety_van1 %>% tabyl(arm, q22a_anxiety) %>% adorn_totals(c("row", "col"))
+anxietyvan_table1 <- dplyr::select(anxietyvan_table1, arm,"NA_", "Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+anxietyvan_table2 <- anxiety_van1 %>% tabyl(arm, q22b_anxiety) %>% adorn_totals(c("row", "col"))
+anxietyvan_table2 <- dplyr::select(anxietyvan_table2, arm,"NA_", "Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+anxietyvan_table3 <- anxiety_van1 %>% tabyl(arm, q22c_anxiety) %>% adorn_totals(c("row", "col"))
+anxietyvan_table3 <- dplyr::select(anxietyvan_table3, arm, "NA_","Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+anxietyvan_table4 <- anxiety_van1 %>% tabyl(arm, q22d_anxiety) %>% adorn_totals(c("row", "col"))
+anxietyvan_table4 <- dplyr::select(anxietyvan_table4, arm, "NA_","Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+```
+<strong>"I felt like something awful might happen" </strong>
+```{r echo=FALSE}
+formattable(anxietyvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"I felt nervous"</strong>
+```{r echo=FALSE}
+formattable(anxietyvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"I felt worried"</strong>
+```{r echo=FALSE}
+formattable(anxietyvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"I worried when I was at home"</strong>
+```{r echo=FALSE}
+formattable(anxietyvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+```{r echo=FALSE}
+# Anxiety for G2C Study only
+anxiety_g2c1 <- dplyr::select(redcap_g2c_raw, cycle1, q34a,	q34b,	q34c,	q34d)
+# Assign labels to choices
+anxiety_g2c1$q34a <- if_else(anxiety_g2c1$q34a==4, "Almost always", if_else(anxiety_g2c1$q34a==3,"Often", if_else(anxiety_g2c1$q34a==2,"Sometimes",      
+if_else(anxiety_g2c1$q34a==1,"Almost never", if_else(anxiety_g2c1$q34a==0,"Never", "Prefer not to answer")))))
+anxiety_g2c1$q34b<- if_else(anxiety_g2c1$q34b==4, "Almost always", if_else(anxiety_g2c1$q34b==3,"Often", if_else(anxiety_g2c1$q34b==2,"Sometimes",      
+if_else(anxiety_g2c1$q34b==1,"Almost never", if_else(anxiety_g2c1$q34b==0,"Never", "Prefer not to answer")))))
+anxiety_g2c1$q34c <- if_else(anxiety_g2c1$q34c==4, "Almost always", if_else(anxiety_g2c1$q34c==3,"Often", if_else(anxiety_g2c1$q34c==2,"Sometimes",      
+if_else(anxiety_g2c1$q34c==1,"Almost never", if_else(anxiety_g2c1$q34c==0,"Never", "Prefer not to answer")))))
+anxiety_g2c1$q34d <- if_else(anxiety_g2c1$q34d==4, "Almost always", if_else(anxiety_g2c1$q34d==3,"Often", if_else(anxiety_g2c1$q34d==2,"Sometimes",      
+if_else(anxiety_g2c1$q34d==1,"Almost never", if_else(anxiety_g2c1$q34d==0,"Never", "Prefer not to answer")))))
+# Assign variable names
+anxiety_g2c1$"I felt like something awful might happen"<- anxiety_g2c1$q34a 
+anxiety_g2c1$"I felt nervous"<- anxiety_g2c1$q34b 
+anxiety_g2c1$"I felt worried"<- anxiety_g2c1$q34c 
+anxiety_g2c1$"I worried when I was at home"<- anxiety_g2c1$q34d 
+# Select only the new variable names
+anxiety_g2c <- dplyr::select(anxiety_g2c1, cycle1,
+"I felt like something awful might happen"
+,"I felt nervous"
+,"I felt worried"
+,"I worried when I was at home")
+
+anxiety_g2c$"I felt like something awful might happen"= factor(anxiety_g2c$"I felt like something awful might happen", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+anxiety_g2c$"I felt nervous"= factor(anxiety_g2c$"I felt nervous", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+anxiety_g2c$"I felt worried"= factor(anxiety_g2c$"I felt worried", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+anxiety_g2c$"I worried when I was at home"= factor(anxiety_g2c$"I worried when I was at home", levels = c("Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always"), ordered = TRUE)
+```
+### G2C graphs
+<strong>"Please answer the following questions based on how you felt in the past 7 days."/strong>
+```{r echo=FALSE}
+# G2c anxiety Plot all variables
+anxiety_g2c_likert <- likert(anxiety_g2c[,2:5])
+plot(anxiety_g2c_likert, wrap=30, order=F)
+```
+<p><strong>G2C Survey – Anxiety Questions, by Youth Arm variable
+<br>"Please answer the following questions based on how you felt in the past 7 days."</strong></p>
+```{r echo=FALSE}
+# G2C anxiety questions, BY CATEGORY
+anxiety_g2c_cat1 <- likert(anxiety_g2c[,2:5], grouping=anxiety_g2c$cycle1)
+plot(anxiety_g2c_cat1, wrap=30)
+
+```
+
+### G2C Tables
+```{r echo=FALSE}
+# Table of g2cguard anxiety variables
+anxietyg2c_table1 <- anxiety_g2c1 %>% tabyl(cycle1, q34a) %>% adorn_totals(c("row", "col"))
+anxietyg2c_table1 <- dplyr::select(anxietyg2c_table1, cycle1, "Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+anxietyg2c_table2 <- anxiety_g2c1 %>% tabyl(cycle1, q34b) %>% adorn_totals(c("row", "col"))
+anxietyg2c_table2 <- dplyr::select(anxietyg2c_table2, cycle1, "Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+anxietyg2c_table3 <- anxiety_g2c1 %>% tabyl(cycle1, q34c) %>% adorn_totals(c("row", "col"))
+anxietyg2c_table3 <- dplyr::select(anxietyg2c_table3, cycle1, "Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+anxietyg2c_table4 <- anxiety_g2c1 %>% tabyl(cycle1, q34d) %>% adorn_totals(c("row", "col"))
+anxietyg2c_table4 <- dplyr::select(anxietyg2c_table4, cycle1, "Prefer not to answer", "Never", "Almost never", "Sometimes", "Often", "Almost always", Total)
+```
+<strong>"I felt like something awful might happen"</strong>
+```{r echo=FALSE}
+formattable(anxietyg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"I felt nervous" </strong>
+```{r echo=FALSE}
+formattable(anxietyg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"I felt worried"</strong>
+```{r echo=FALSE}
+formattable(anxietyg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"I worried when I was at home" </strong>
+```{r echo=FALSE}
+formattable(anxietyg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+### Vanguard vs. G2C
+<strong>Please answer the following questions based on how you felt in the past 7 days.</strong>
+```{r echo=FALSE}
+# Merge the vanguard and g2c data for comparison
+anxiety_g2c_merge <- dplyr::select(anxiety_g2c, -cycle1)
+anxiety_g2c_merge$study <- "Grads2Careers"
+anxiety_van_merge <- dplyr::select(anxiety_van, -arm)
+anxiety_van_merge$study <- "Vanguard"
+anxiety_merged <- rbind(anxiety_g2c_merge,anxiety_van_merge)
+anxiety_merged1 <- dplyr::select(anxiety_merged, "I felt like something awful might happen","I felt nervous","I felt worried","I worried when I was at home")
+# MERGED anxiety Plot by Study
+anxiety_merged_cat1 <- likert(anxiety_merged1, grouping=anxiety_merged$study)
+plot(anxiety_merged_cat1)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+####################### Vanguard ####################
+# Select Vanguard anxiety variables and create new variables for total score and dichotomous variable
+anxiety_van_total <- dplyr::select(redcap_van_survey, arm, q22a_anxiety, q22b_anxiety, q22c_anxiety, q22d_anxiety)
+# Create Anxiety Score w/ and w/o "Prefer not to answer"
+anxiety_van_total$anxiety_total <- anxiety_van_total$q22a_anxiety + anxiety_van_total$q22b_anxiety + anxiety_van_total$q22c_anxiety + anxiety_van_total$q22d_anxiety
+anxiety_van_total$anxiety_total_no_refused <- ifelse(anxiety_van_total$anxiety_total>16, NA, anxiety_van_total$anxiety_total)
+# Flagged if score 8 or greater
+anxiety_van_total$anxiety_flagged <- if_else(anxiety_van_total$anxiety_total>=8, 1,0)
+# Rename Vanguard variables
+anxiety_van_total$"I felt like something awful might happen" <- anxiety_van_total$q22a_anxiety
+anxiety_van_total$"I felt nervous" <- anxiety_van_total$q22b_anxiety
+anxiety_van_total$"I felt worried" <- anxiety_van_total$q22c_anxiety
+anxiety_van_total$"I worried when I was at home" <- anxiety_van_total$q22d_anxiety 
+#Select only the new variable names
+anxiety_van_totals <- dplyr::select(anxiety_van_total, anxiety_total, anxiety_total_no_refused, anxiety_flagged,
+"I felt like something awful might happen","I felt nervous","I felt worried"
+,"I worried when I was at home")
+
+######################## G2C #######################
+# Add variable names, total and select new variables for G2C data
+anxiety_g2c_total <- dplyr::select(redcap_g2c_raw, cycle.y, q34a, q34b, q34c, q34d)
+# Create a anxiety score w/ and w/o "Prefer not to answer"
+anxiety_g2c_total$anxiety_total <- anxiety_g2c_total$q34a + anxiety_g2c_total$q34b + anxiety_g2c_total$q34c + anxiety_g2c_total$q34d
+anxiety_g2c_total$anxiety_total_no_refused <- ifelse(anxiety_g2c_total$anxiety_total>16, NA, anxiety_g2c_total$anxiety_total)
+# Flagged if score 8 or greater
+anxiety_g2c_total$anxiety_flagged <- if_else(anxiety_g2c_total$anxiety_total>=8, 1,0)
+# Rename G2C variable
+anxiety_g2c_total$"I felt like something awful might happen" <- anxiety_g2c_total$q34a
+anxiety_g2c_total$"I felt nervous" <- anxiety_g2c_total$q34b
+anxiety_g2c_total$"I felt worried"<- anxiety_g2c_total$q34c
+anxiety_g2c_total$"I worried when I was at home"<- anxiety_g2c_total$q34d
+#Select only the new variable names
+anxiety_g2c_totals <- dplyr::select(anxiety_g2c_total, anxiety_total, anxiety_total_no_refused, anxiety_flagged,"I felt like something awful might happen", "I felt nervous","I felt worried","I worried when I was at home") 
+```
+
+```{r echo=FALSE}
+# Combine the studies
+anxiety1 <- as.data.frame(ftable(anxiety_van_totals$anxiety_total_no_refused))
+anxiety1$Vanguard <- anxiety1$Freq
+anxiety_van_totals$study <-"Vanguard"
+
+anxiety2 <- as.data.frame(ftable(anxiety_g2c_totals$anxiety_total_no_refused))
+anxiety2$G2C <- anxiety2$Freq
+anxiety_g2c_totals$study <- "G2C"
+
+anxiety_total_merged <- rbind(anxiety_g2c_totals, anxiety_van_totals)
+```
+<strong>Histogram of anxiety Scores (total of 4 variables, range:0-16): Vanguard vs. G2C </strong>
+```{r echo=FALSE}
+# Create a grouped bar chart
+anxiety1$subgroup <- "Vanguard"
+anxiety1$group <- anxiety1$Var1
+anxiety1$values <- anxiety1$Freq
+anxiety1a <- dplyr::select(anxiety1, subgroup, group, values)
+anxiety2$subgroup <- "G2c"
+anxiety2$group <- anxiety2$Var1
+anxiety2$values <- anxiety2$Freq
+anxiety2a <- dplyr::select(anxiety2, subgroup, group, values)
+anxiety3 <- rbind(anxiety1a, anxiety2a)
+
+ggplot(anxiety3, 
+       aes(x=group, 
+           y=values, 
+           fill=subgroup)) + 
+    geom_bar(position="dodge", 
+             stat="identity")
+        
+```
+
+```{r echo=FALSE}
+anxiety_total_merged1 <- dplyr::filter(anxiety_total_merged, !is.na(anxiety_total) & anxiety_total <=30)
+histogram(~ anxiety_total | study,
+          main = "Anxiety Score, Percent Comparison of Vanguard and G2C",
+          xlab = "Score",
+          data=anxiety_total_merged1,
+          type="percent",
+          layout=c(1,2))      #  columns and rows of individual plots
+```
+
+```{r echo=FALSE}
+wilcox.test(anxiety_total_merged$anxiety_total_no_refused ~ anxiety_total_merged$study)
+
+t.test(anxiety_total_merged$anxiety_total_no_refused ~ anxiety_total_merged$study)
+```
+Anxiety Score comparison
+```{r echo=FALSE}
+boxplot(anxiety_total_merged$anxiety_total_no_refused ~ anxiety_total_merged$study, col="#69b3a2" , ylab="Total anxiety Score", xlab = "Study")
+```
+
+## 3. PTSD / Trauma
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Import G2C REDCap data for comparison to Vanguard
+redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
+redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
+redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
+redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
+redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
+redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
+# ETO data - Cycle 2
+eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo$cycle <- eto2_demo$`Cycle:`
+eto2_demo$name_first <- eto2_demo$`First Name`
+eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$gender <- eto2_demo$`Gender_3753`
+eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
+eto2_demo$race <- eto2_demo$`Race-Custom`
+eto2_demo$dob <- eto2_demo$DOB
+eto2_demo$source <- "eto2"
+eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog$subjectid <- eto2_prog$ID
+eto2_prog$program <- eto2_prog$`Current Program`
+# ETO data - Cycle 3
+eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo$cycle <- eto3_demo$`Cycle:`
+eto3_demo$name_first <- eto3_demo$`First Name`
+eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$gender <- eto3_demo$`Gender_3753`
+eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
+eto3_demo$race <- eto3_demo$`Race-Custom`
+eto3_demo$dob <- eto3_demo$DOB
+eto3_demo$source <- "eto3"
+eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog$subjectid <- eto3_prog$SubjectID
+eto3_prog$program <- eto3_prog$`Program Name`
+# Salesforce data
+salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact: First Name`
+salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce2$gender_sales <- salesforce2$`Gender`
+salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
+salesforce2$race_sales <- salesforce2$`Race`
+salesforce2$source_sales <- "salesforce"
+# Select variables from Salesforce data
+salesforce3 <- dplyr::select(salesforce2, name_first, name_last, gender_sales, ethnic_sales, race_sales, source_sales)
+# Select variables from ETO data
+eto2_demo_select <- dplyr::select(eto2_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto2_prog_select <- dplyr::select(eto2_prog, subjectid, `program`)
+eto2 <- left_join(eto2_demo_select, eto2_prog_select, by="subjectid")
+eto3_demo_select <- dplyr::select(eto3_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto3_prog_select <- dplyr::select(eto3_prog, subjectid, `program`)
+eto3 <- left_join(eto3_demo_select, eto3_prog_select, by="subjectid")
+# All ETO data
+eto_data <- rbind(eto2, eto3)
+# Merge REDCap data with ETO and Salesforce data
+redcap_g2c_raw3 <- left_join(redcap_g2c_raw2, eto_data, by=c("name_first", "name_last"))
+redcap_g2c_raw4 <- left_join(redcap_g2c_raw3, salesforce3, by=c("name_first", "name_last"))
+redcap_g2c_raw <- unique(redcap_g2c_raw4)
+redcap_g2c_raw$gender_merge <- if_else((is.na(redcap_g2c_raw$gender)), redcap_g2c_raw$gender_sales, redcap_g2c_raw$gender)
+# Manually replace missing gender and cycle data
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Porter" & redcap_g2c_raw$name_first=="Jared","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Johnson" & redcap_g2c_raw$name_first=="Jamyra","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Baker" & redcap_g2c_raw$name_first=="Amori","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","cycle.y"] <- "Cycle 2"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","program"] <- "Civic Works"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Gladney" & redcap_g2c_raw$name_first=="Kayla","gender_merge"] <- "Female"
+# Handle cycle 
+redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", redcap_g2c_raw$cycle.y)
+```
+
+```{r include=FALSE}
+# Import Vanguard data from REDCap project
+redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
+redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
+redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
+
+redcap_van_survey$arm <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
+```
+
+```{r include=FALSE}
+# ptsd for Vanguard Study only
+ptsd_van1 <- dplyr::select(redcap_van_survey, arm, q23a_trauma, q23b_trauma, q23c_trauma, q23d_trauma) 
+# Assign labels to choices             
+ptsd_van1$q23a_trauma <- if_else(ptsd_van1$q23a_trauma==4, "Etremely", if_else(ptsd_van1$q23a_trauma==3,"Quite a bit", if_else(ptsd_van1$q23a_trauma==2,"Moderately",      
+if_else(ptsd_van1$q23a_trauma==1,"A little bit", if_else(ptsd_van1$q23a_trauma==0,"Not at all", "Prefer not to answer")))))
+ptsd_van1$q23b_trauma <- if_else(ptsd_van1$q23b_trauma==4, "Etremely", if_else(ptsd_van1$q23b_trauma==3,"Quite a bit", if_else(ptsd_van1$q23b_trauma==2,"Moderately",      
+if_else(ptsd_van1$q23b_trauma==1,"A little bit", if_else(ptsd_van1$q23b_trauma==0,"Not at all", "Prefer not to answer")))))
+ptsd_van1$q23c_trauma <- if_else(ptsd_van1$q23c_trauma==4, "Etremely", if_else(ptsd_van1$q23c_trauma==3,"Quite a bit", if_else(ptsd_van1$q23c_trauma==2,"Moderately",      
+if_else(ptsd_van1$q23c_trauma==1,"A little bit", if_else(ptsd_van1$q23c_trauma==0,"Not at all", "Prefer not to answer")))))
+ptsd_van1$q23d_trauma <- if_else(ptsd_van1$q23d_trauma==4, "Etremely", if_else(ptsd_van1$q23d_trauma==3,"Quite a bit", if_else(ptsd_van1$q23d_trauma==2,"Moderately",      
+if_else(ptsd_van1$q23d_trauma==1,"A little bit", if_else(ptsd_van1$q23d_trauma==0,"Not at all", "Prefer not to answer")))))
+#Assign variable names                   
+ptsd_van1$"Suddenly feeling or acting as if the stressful experience were actually happening again"<- ptsd_van1$q23a_trauma 
+ptsd_van1$"Avoiding external reminders of the stressful experience"<- ptsd_van1$q23b_trauma
+ptsd_van1$"Feeling distant or cut off from other people"<- ptsd_van1$q23c_trauma
+ptsd_van1$"Irritable behavior, angry outbursts, or acting aggressively" <- ptsd_van1$q23d_trauma
+#Select only the new variable names
+ptsd_van <- dplyr::select(ptsd_van1, arm, "Suddenly feeling or acting as if the stressful experience were actually happening again"
+,"Avoiding external reminders of the stressful experience"
+,"Feeling distant or cut off from other people"
+,"Irritable behavior, angry outbursts, or acting aggressively") 
+#Assign an order to the variables
+ptsd_van$"Suddenly feeling or acting as if the stressful experience were actually happening again" = factor(ptsd_van$"Suddenly feeling or acting as if the stressful experience were actually happening again", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely"), ordered = TRUE)
+ptsd_van$"Avoiding external reminders of the stressful experience" = factor(ptsd_van$"Avoiding external reminders of the stressful experience", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely"), ordered = TRUE)
+ptsd_van$"Feeling distant or cut off from other people" = factor(ptsd_van$"Feeling distant or cut off from other people", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely"), ordered = TRUE)
+ptsd_van$"Irritable behavior, angry outbursts, or acting aggressively" = factor(ptsd_van$"Irritable behavior, angry outbursts, or acting aggressively", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely"), ordered = TRUE)
+```
+## {.tabset}
+### Vanguard graphs
+<p><strong>Vanguard Survey – PTSD Questions
+<br>"Below is a list of problems that people sometimes have in response to a very stressful experience. Please read each problem carefully and then circle one of the numbers to the right to indicate how much you have been bothered by that problem in the <u>past 30 days</u>.
+In the <u>past 30 days</u>, how much were you bothered by:"</p>
+```{r echo=FALSE}
+# Vanguard PTSD Plot all variables
+ptsd_van_likert <- likert(ptsd_van[,2:5])
+plot(ptsd_van_likert, wrap=25)
+```
+<p><strong>Vanguard Survey – PTSD Questions, by Youth Arm variable
+<br>"Below is a list of problems that people sometimes have in response to a very stressful experience. Please read each problem carefully and then circle one of the numbers to the right to indicate how much you have been bothered by that problem in the <u>past 30 days</u>.
+In the <u>past 30 days</u>, how much were you bothered by:"</p>
+```{r echo=FALSE}
+# Vanguard ptsd questions, BY CATEGORY
+ptsd_van_cat1 <- likert(ptsd_van[,2:5], grouping=ptsd_van$arm)
+plot(ptsd_van_cat1, wrap=50)
+```
+
+### Vanguard Tables
+```{r echo=FALSE}
+# Table of Vanguard ptsd variables
+ptsdvan_table1 <- ptsd_van1 %>% tabyl(arm, q23a_trauma) %>% adorn_totals(c("row", "col"))
+ptsdvan_table1 <- dplyr::select(ptsdvan_table1, arm, NA_, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely", Total)
+ptsdvan_table2 <- ptsd_van1 %>% tabyl(arm, q23b_trauma) %>% adorn_totals(c("row", "col"))
+ptsdvan_table2 <- dplyr::select(ptsdvan_table2, arm,NA_, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely", Total)
+ptsdvan_table3 <- ptsd_van1 %>% tabyl(arm, q23c_trauma) %>% adorn_totals(c("row", "col"))
+ptsdvan_table3 <- dplyr::select(ptsdvan_table3, arm, NA_, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely", Total)
+ptsdvan_table4 <- ptsd_van1 %>% tabyl(arm, q23d_trauma) %>% adorn_totals(c("row", "col"))
+ptsdvan_table4 <- dplyr::select(ptsdvan_table4, arm, NA_, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Etremely", Total)
+```
+<strong>"Suddenly feeling or acting as if the stressful experience were actually happening again" </strong>
+```{r echo=FALSE}
+formattable(ptsdvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"Avoiding external reminders of the stressful experience"</strong>
+```{r echo=FALSE}
+formattable(ptsdvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"Feeling distant or cut off from other people"</strong>
+```{r echo=FALSE}
+formattable(ptsdvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"Irritable behavior, angry outbursts, or acting aggressively"</strong>
+```{r echo=FALSE}
+formattable(ptsdvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+```{r echo=FALSE}
+# ptsd for G2C Study only
+ptsd_g2c1 <- dplyr::select(redcap_g2c_raw, cycle1, q35a,	q35b,	q35c,	q35d)
+# Assign labels to choices
+ptsd_g2c1$q35a <- if_else(ptsd_g2c1$q35a==4, "Extremely", if_else(ptsd_g2c1$q35a==3,"Quite a bit", if_else(ptsd_g2c1$q35a==2,"Moderately",      
+if_else(ptsd_g2c1$q35a==1,"A little bit", if_else(ptsd_g2c1$q35a==0,"Not at all", "Prefer not to answer")))))
+ptsd_g2c1$q35b<- if_else(ptsd_g2c1$q35b==4, "Extremely", if_else(ptsd_g2c1$q35b==3,"Quite a bit", if_else(ptsd_g2c1$q35b==2,"Moderately",      
+if_else(ptsd_g2c1$q35b==1,"A little bit", if_else(ptsd_g2c1$q35b==0,"Not at all", "Prefer not to answer")))))
+ptsd_g2c1$q35c <- if_else(ptsd_g2c1$q35c==4, "Extremely", if_else(ptsd_g2c1$q35c==3,"Quite a bit", if_else(ptsd_g2c1$q35c==2,"Moderately",      
+if_else(ptsd_g2c1$q35c==1,"A little bit", if_else(ptsd_g2c1$q35c==0,"Not at all", "Prefer not to answer")))))
+ptsd_g2c1$q35d <- if_else(ptsd_g2c1$q35d==4, "Extremely", if_else(ptsd_g2c1$q35d==3,"Quite a bit", if_else(ptsd_g2c1$q35d==2,"Moderately",      
+if_else(ptsd_g2c1$q35d==1,"A little bit", if_else(ptsd_g2c1$q35d==0,"Not at all", "Prefer not to answer")))))
+# Assign variable names
+ptsd_g2c1$"Suddenly feeling or acting as if the stressful experience were actually happening again"<- ptsd_g2c1$q35a 
+ptsd_g2c1$"Avoiding external reminders of the stressful experience"<- ptsd_g2c1$q35b 
+ptsd_g2c1$"Feeling distant or cut off from other people"<- ptsd_g2c1$q35c 
+ptsd_g2c1$"Irritable behavior, angry outbursts, or acting aggressively"<- ptsd_g2c1$q35d 
+# Select only the new variable names
+ptsd_g2c <- dplyr::select(ptsd_g2c1, cycle1,
+"Suddenly feeling or acting as if the stressful experience were actually happening again"
+,"Avoiding external reminders of the stressful experience"
+,"Feeling distant or cut off from other people"
+,"Irritable behavior, angry outbursts, or acting aggressively")
+
+ptsd_g2c$"Suddenly feeling or acting as if the stressful experience were actually happening again"= factor(ptsd_g2c$"Suddenly feeling or acting as if the stressful experience were actually happening again", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely"), ordered = TRUE)
+ptsd_g2c$"Avoiding external reminders of the stressful experience"= factor(ptsd_g2c$"Avoiding external reminders of the stressful experience", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely"), ordered = TRUE)
+ptsd_g2c$"Feeling distant or cut off from other people"= factor(ptsd_g2c$"Feeling distant or cut off from other people", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely"), ordered = TRUE)
+ptsd_g2c$"Irritable behavior, angry outbursts, or acting aggressively"= factor(ptsd_g2c$"Irritable behavior, angry outbursts, or acting aggressively", levels = c("Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely"), ordered = TRUE)
+```
+### G2C graphs
+<strong>"Below is a list of problems that people sometimes have in response to a very stressful experience. Please read each problem carefully and then circle one of the numbers to the right to indicate how much you have been bothered by that problem in the <u>past 30 days</u>.
+In the <u>past 30 days</u>, how much were you bothered by:"/strong>
+```{r echo=FALSE}
+# G2c ptsd Plot all variables
+ptsd_g2c_likert <- likert(ptsd_g2c[,2:5])
+plot(ptsd_g2c_likert, wrap=30, order=F)
+```
+<p><strong>G2C Survey – ptsd Questions, by Youth Arm variable
+<br>"Below is a list of problems that people sometimes have in response to a very stressful experience. Please read each problem carefully and then circle one of the numbers to the right to indicate how much you have been bothered by that problem in the <u>past 30 days</u>.
+In the <u>past 30 days</u>, how much were you bothered by:"</strong></p>
+```{r echo=FALSE}
+# G2C ptsd questions, BY CATEGORY
+ptsd_g2c_cat1 <- likert(ptsd_g2c[,2:5], grouping=ptsd_g2c$cycle1)
+plot(ptsd_g2c_cat1, wrap=30)
+
+```
+
+### G2C Tables
+```{r echo=FALSE}
+# Table of g2cguard ptsd variables
+ptsdg2c_table1 <- ptsd_g2c1 %>% tabyl(cycle1, q35a) %>% adorn_totals(c("row", "col"))
+ptsdg2c_table1 <- dplyr::select(ptsdg2c_table1, cycle1, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely", Total)
+ptsdg2c_table2 <- ptsd_g2c1 %>% tabyl(cycle1, q35b) %>% adorn_totals(c("row", "col"))
+ptsdg2c_table2 <- dplyr::select(ptsdg2c_table2, cycle1, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely", Total)
+ptsdg2c_table3 <- ptsd_g2c1 %>% tabyl(cycle1, q35c) %>% adorn_totals(c("row", "col"))
+ptsdg2c_table3 <- dplyr::select(ptsdg2c_table3, cycle1, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely", Total)
+ptsdg2c_table4 <- ptsd_g2c1 %>% tabyl(cycle1, q35d) %>% adorn_totals(c("row", "col"))
+ptsdg2c_table4 <- dplyr::select(ptsdg2c_table4, cycle1, "Prefer not to answer", "Not at all", "A little bit", "Moderately", "Quite a bit", "Extremely", Total)
+```
+<strong>"Suddenly feeling or acting as if the stressful experience were actually happening again"</strong>
+```{r echo=FALSE}
+formattable(ptsdg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"Avoiding external reminders of the stressful experience" </strong>
+```{r echo=FALSE}
+formattable(ptsdg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"Feeling distant or cut off from other people"</strong>
+```{r echo=FALSE}
+formattable(ptsdg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>"Irritable behavior, angry outbursts, or acting aggressively" </strong>
+```{r echo=FALSE}
+formattable(ptsdg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+### Vanguard vs. G2C
+<strong>"Below is a list of problems that people sometimes have in response to a very stressful experience. Please read each problem carefully and then circle one of the numbers to the right to indicate how much you have been bothered by that problem in the <u>past 30 days</u>.
+In the <u>past 30 days</u>, how much were you bothered by:"</strong>
+```{r echo=FALSE}
+# Merge the vanguard and g2c data for comparison
+ptsd_g2c_merge <- dplyr::select(ptsd_g2c, -cycle1)
+ptsd_g2c_merge$study <- "Grads2Careers"
+ptsd_van_merge <- dplyr::select(ptsd_van, -arm)
+ptsd_van_merge$study <- "Vanguard"
+ptsd_merged <- rbind(ptsd_g2c_merge,ptsd_van_merge)
+ptsd_merged1 <- dplyr::select(ptsd_merged, study, "Suddenly feeling or acting as if the stressful experience were actually happening again", "Avoiding external reminders of the stressful experience", "Feeling distant or cut off from other people", "Irritable behavior, angry outbursts, or acting aggressively")
+# MERGED ptsd Plot by Study
+ptsd_merged_cat <- likert(ptsd_merged[,1:4], grouping=ptsd_merged$study)
+plot(ptsd_merged_cat)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+####################### Vanguard ####################
+# Select Vanguard Food variables and create new variables for total score and dichotomous variable
+ptsd_van_total <- dplyr::select(redcap_van_survey, arm, q23a_trauma, q23b_trauma, q23c_trauma, q23d_trauma) 
+# Create a Food Insecurity score w/ and w/o "Prefer not to answer"
+ptsd_van_total$ptsd_total <- ptsd_van_total$q23a_trauma + ptsd_van_total$q23b_trauma + ptsd_van_total$q23c_trauma + ptsd_van_total$q23d_trauma
+ptsd_van_total$ptsd_total_no_refused <- ifelse(ptsd_van_total$ptsd_total>16, NA, ptsd_van_total$ptsd_total)
+# Flagged if score 7 or greater
+ptsd_van_total$ptsd_flagged <- if_else(ptsd_van_total$ptsd_total>=7, 1,0)
+# Rename Vanguard variable
+ptsd_van_total$"Suddenly feeling or acting as if the stressful experience were actually happening again" <- ptsd_van_total$q23a_trauma
+ptsd_van_total$"Avoiding external reminders of the stressful experience" <- ptsd_van_total$q23b_trauma
+ptsd_van_total$"Feeling distant or cut off from other people" <- ptsd_van_total$q23c_trauma
+ptsd_van_total$"Irritable behavior, angry outbursts, or acting aggressively" <- ptsd_van_total$q23d_trauma  
+#Select only the new variable names
+ptsd_van_totals <- dplyr::select(ptsd_van_total, ptsd_total, ptsd_total_no_refused, ptsd_flagged,
+"Suddenly feeling or acting as if the stressful experience were actually happening again","Avoiding external reminders of the stressful experience","Feeling distant or cut off from other people"
+,"Irritable behavior, angry outbursts, or acting aggressively")
+######################## G2C #######################
+# Add variable names, total and select new variables for G2C data
+ptsd_g2c_total <- dplyr::select(redcap_g2c_raw, q35a, q35b, q35c, q35d)
+ptsd_g2c_total$ptsd_total <- ptsd_g2c_total$q35a + ptsd_g2c_total$q35b + ptsd_g2c_total$q35c + ptsd_g2c_total$q35d
+ptsd_g2c_total$ptsd_total_no_refused <- ifelse(ptsd_g2c_total$ptsd_total>16, NA, ptsd_g2c_total$ptsd_total)
+ptsd_g2c_total$ptsd_flagged <- if_else(ptsd_g2c_total$ptsd_total>=7, 1,0)
+# Rename G2C variable
+ptsd_g2c_total$"Suddenly feeling or acting as if the stressful experience were actually happening again" <- ptsd_g2c_total$q35a
+ptsd_g2c_total$"Avoiding external reminders of the stressful experience" <- ptsd_g2c_total$q35b
+ptsd_g2c_total$"Feeling distant or cut off from other people"<- ptsd_g2c_total$q35c
+ptsd_g2c_total$"Irritable behavior, angry outbursts, or acting aggressively"<- ptsd_g2c_total$q35d
+#Select only the new variable names
+ptsd_g2c_totals <- dplyr::select(ptsd_g2c_total, ptsd_total, ptsd_total_no_refused, ptsd_flagged,"Suddenly feeling or acting as if the stressful experience were actually happening again", "Avoiding external reminders of the stressful experience","Feeling distant or cut off from other people","Irritable behavior, angry outbursts, or acting aggressively") 
+```
+
+```{r echo=FALSE}
+# Combine the studies
+ptsd1 <- as.data.frame(ftable(ptsd_van_totals$ptsd_total_no_refused))
+ptsd1$Vanguard <- ptsd1$Freq
+ptsd_van_totals$study <-"Vanguard"
+
+ptsd2 <- as.data.frame(ftable(ptsd_g2c_totals$ptsd_total_no_refused))
+ptsd2$G2C <- ptsd2$Freq
+ptsd_g2c_totals$study <- "G2C"
+
+ptsd_total_merged <- rbind(ptsd_g2c_totals, ptsd_van_totals)
+```
+<strong>Histogram of ptsd Scores (total of 4 variables, range:0-16): Vanguard vs. G2C </strong>
+```{r echo=FALSE}
+# Create a grouped bar chart
+ptsd1$subgroup <- "Vanguard"
+ptsd1$group <- ptsd1$Var1
+ptsd1$values <- ptsd1$Freq
+ptsd1a <- dplyr::select(ptsd1, subgroup, group, values)
+ptsd2$subgroup <- "G2c"
+ptsd2$group <- ptsd2$Var1
+ptsd2$values <- ptsd2$Freq
+ptsd2a <- dplyr::select(ptsd2, subgroup, group, values)
+ptsd3 <- rbind(ptsd1a, ptsd2a)
+
+ggplot(ptsd3, 
+       aes(x=group, 
+           y=values, 
+           fill=subgroup)) + 
+    geom_bar(position="dodge", 
+             stat="identity")
+        
+```
+
+```{r echo=FALSE}
+ptsd_total_merged1 <- dplyr::filter(ptsd_total_merged, !is.na(ptsd_total) & ptsd_total <=30)
+histogram(~ ptsd_total | study,
+          main = "PTSD/Trauma Score, Percent Comparison of Vanguard and G2C",
+          xlab = "Score",
+          data=ptsd_total_merged1,
+          type="percent",
+          layout=c(1,2))      #  columns and rows of individual plots
+```
+
+```{r echo=FALSE}
+wilcox.test(ptsd_total_merged$ptsd_total_no_refused ~ ptsd_total_merged$study)
+
+t.test(ptsd_total_merged$ptsd_total_no_refused ~ ptsd_total_merged$study)
+```
+ptsd Score comparison
+```{r echo=FALSE}
+boxplot(ptsd_total_merged$ptsd_total_no_refused ~ ptsd_total_merged$study, col="#69b3a2" , ylab="Total PTSD/Trauma Score", xlab = "Study")
+```
+
+## 4.  Depression
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#Load library
+library(Hmisc)
+library(summarytools)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(likert)
+library(kableExtra)
+library(formattable)
+library(janitor)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Import G2C REDCap data for comparison to Vanguard
+redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
+redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
+redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
+redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
+redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
+redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
+# ETO data - Cycle 2
+eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo$cycle <- eto2_demo$`Cycle:`
+eto2_demo$name_first <- eto2_demo$`First Name`
+eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$gender <- eto2_demo$`Gender_3753`
+eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
+eto2_demo$race <- eto2_demo$`Race-Custom`
+eto2_demo$dob <- eto2_demo$DOB
+eto2_demo$source <- "eto2"
+eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog$subjectid <- eto2_prog$ID
+eto2_prog$program <- eto2_prog$`Current Program`
+# ETO data - Cycle 3
+eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo$cycle <- eto3_demo$`Cycle:`
+eto3_demo$name_first <- eto3_demo$`First Name`
+eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$gender <- eto3_demo$`Gender_3753`
+eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
+eto3_demo$race <- eto3_demo$`Race-Custom`
+eto3_demo$dob <- eto3_demo$DOB
+eto3_demo$source <- "eto3"
+eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog$subjectid <- eto3_prog$SubjectID
+eto3_prog$program <- eto3_prog$`Program Name`
+# Salesforce data
+salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact: First Name`
+salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce2$gender_sales <- salesforce2$`Gender`
+salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
+salesforce2$race_sales <- salesforce2$`Race`
+salesforce2$source_sales <- "salesforce"
+# Select variables from Salesforce data
+salesforce3 <- dplyr::select(salesforce2, name_first, name_last, gender_sales, ethnic_sales, race_sales, source_sales)
+# Select variables from ETO data
+eto2_demo_select <- dplyr::select(eto2_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto2_prog_select <- dplyr::select(eto2_prog, subjectid, `program`)
+eto2 <- left_join(eto2_demo_select, eto2_prog_select, by="subjectid")
+eto3_demo_select <- dplyr::select(eto3_demo, subjectid, cycle, name_first, name_last, gender, ethnic, race, dob, source)
+eto3_prog_select <- dplyr::select(eto3_prog, subjectid, `program`)
+eto3 <- left_join(eto3_demo_select, eto3_prog_select, by="subjectid")
+# All ETO data
+eto_data <- rbind(eto2, eto3)
+# Merge REDCap data with ETO and Salesforce data
+redcap_g2c_raw3 <- left_join(redcap_g2c_raw2, eto_data, by=c("name_first", "name_last"))
+redcap_g2c_raw4 <- left_join(redcap_g2c_raw3, salesforce3, by=c("name_first", "name_last"))
+redcap_g2c_raw <- unique(redcap_g2c_raw4)
+redcap_g2c_raw$gender_merge <- if_else((is.na(redcap_g2c_raw$gender)), redcap_g2c_raw$gender_sales, redcap_g2c_raw$gender)
+# Manually replace missing gender and cycle data
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Porter" & redcap_g2c_raw$name_first=="Jared","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Christian" & redcap_g2c_raw$name_first=="Ja'Daia","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Johnson" & redcap_g2c_raw$name_first=="Jamyra","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Baker" & redcap_g2c_raw$name_first=="Amori","gender_merge"] <- "Female"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","cycle.y"] <- "Cycle 2"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Collins" & redcap_g2c_raw$name_first=="Jatay","program"] <- "Civic Works"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","gender_merge"] <- "Male"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Evans" & redcap_g2c_raw$name_first=="Dasean","cycle.y"] <- "Cycle 3"
+redcap_g2c_raw[redcap_g2c_raw$name_last=="Gladney" & redcap_g2c_raw$name_first=="Kayla","gender_merge"] <- "Female"
+# Handle cycle 
+redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", redcap_g2c_raw$cycle.y)
+```
+
+```{r include=FALSE}
+# Import Vanguard data from REDCap project
+redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
+redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
+redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
+
+redcap_van_survey$arm <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
+```
+
+```{r include=FALSE}
+# Depression for Vanguard Study only
+depression_van1 <- dplyr::select(redcap_van_survey, arm, q21a_depression, q21b_depression, q21c_depression, q21d_depression, q21e_depression, q21f_depression, q21g_depression, q21h_depression, q21i_depression, q21j_depression) 
+# Assign labels to choices             
+depression_van1$q21a_depression <-  if_else(depression_van1$q21a_depression==3,"5-7 days", if_else(depression_van1$q21a_depression==2,"3-4 days", if_else(depression_van1$q21a_depression==1,"1-2 days", if_else(depression_van1$q21a_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21b_depression <-  if_else(depression_van1$q21b_depression==3,"5-7 days", if_else(depression_van1$q21b_depression==2,"3-4 days", if_else(depression_van1$q21b_depression==1,"1-2 days", if_else(depression_van1$q21b_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21c_depression <-  if_else(depression_van1$q21c_depression==3,"5-7 days", if_else(depression_van1$q21c_depression==2,"3-4 days", if_else(depression_van1$q21c_depression==1,"1-2 days", if_else(depression_van1$q21c_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21d_depression <-  if_else(depression_van1$q21d_depression==3,"5-7 days", if_else(depression_van1$q21d_depression==2,"3-4 days", if_else(depression_van1$q21d_depression==1,"1-2 days", if_else(depression_van1$q21d_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21e_depression <-  if_else(depression_van1$q21e_depression==3,"5-7 days", if_else(depression_van1$q21e_depression==2,"3-4 days", if_else(depression_van1$q21e_depression==1,"1-2 days", if_else(depression_van1$q21e_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21f_depression <-  if_else(depression_van1$q21f_depression==3,"5-7 days", if_else(depression_van1$q21f_depression==2,"3-4 days", if_else(depression_van1$q21f_depression==1,"1-2 days", if_else(depression_van1$q21f_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21g_depression <-  if_else(depression_van1$q21g_depression==3,"5-7 days", if_else(depression_van1$q21g_depression==2,"3-4 days", if_else(depression_van1$q21g_depression==1,"1-2 days", if_else(depression_van1$q21g_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21h_depression <-  if_else(depression_van1$q21h_depression==3,"5-7 days", if_else(depression_van1$q21h_depression==2,"3-4 days", if_else(depression_van1$q21h_depression==1,"1-2 days", if_else(depression_van1$q21h_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21i_depression <-  if_else(depression_van1$q21i_depression==3,"5-7 days", if_else(depression_van1$q21i_depression==2,"3-4 days", if_else(depression_van1$q21i_depression==1,"1-2 days", if_else(depression_van1$q21i_depression==0,"less than 1 day", "Prefer not to answer"))))
+depression_van1$q21j_depression <-  if_else(depression_van1$q21j_depression==3,"5-7 days", if_else(depression_van1$q21j_depression==2,"3-4 days", if_else(depression_van1$q21j_depression==1,"1-2 days", if_else(depression_van1$q21j_depression==0,"less than 1 day", "Prefer not to answer"))))
+# Assign variable names                   
+depression_van1$"I was bothered by things that usually don't bother me"<- depression_van1$q21a_depression 
+depression_van1$"I had trouble keeping my mind on what I was doing"<- depression_van1$q21b_depression 
+depression_van1$"I felt lonely"<- depression_van1$q21c_depression 
+depression_van1$"I felt depressed" <- depression_van1$q21d_depression
+depression_van1$"I felt that everything was an effort"<- depression_van1$q21e_depression 
+depression_van1$"I felt hopeful about the future"<- depression_van1$q21f_depression 
+depression_van1$"I felt fearful"<- depression_van1$q21g_depression 
+depression_van1$"My sleep was restless" <- depression_van1$q21h_depression
+depression_van1$"I was happy"<- depression_van1$q21i_depression 
+depression_van1$"I could not get going" <- depression_van1$q21j_depression
+# Select only the new variable names
+depression_van <- dplyr::select(depression_van1, arm,"I was bothered by things that usually don't bother me","I had trouble keeping my mind on what I was doing","I felt lonely","I felt depressed" ,"I felt that everything was an effort","I felt hopeful about the future" ,"I felt fearful","My sleep was restless" ,"I was happy","I could not get going") 
+# Assign an order to the variables
+depression_van$"I was bothered by things that usually don't bother me" = factor(depression_van$"I was bothered by things that usually don't bother me", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I had trouble keeping my mind on what I was doing" = factor(depression_van$"I had trouble keeping my mind on what I was doing", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I felt lonely" = factor(depression_van$"I felt lonely", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I felt depressed" = factor(depression_van$"I felt depressed", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I felt that everything was an effort" = factor(depression_van$"I felt that everything was an effort", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I felt hopeful about the future" = factor(depression_van$"I felt hopeful about the future", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I felt fearful" = factor(depression_van$"I felt fearful", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"My sleep was restless" = factor(depression_van$"My sleep was restless", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I was happy" = factor(depression_van$"I was happy", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_van$"I could not get going" = factor(depression_van$"I could not get going", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+```
+## {.tabset}
+### Vanguard graphs
+<p><strong>Vanguard Survey – Depression Questions
+<br>Below is a list of the ways you might have felt or behaved. Please tell me how often you have felt this way <u>during the past 7 days.</strong></u></p>
+```{r echo=FALSE}
+# Vanguard Depression Plot all variables
+depression_van_likert <- likert(depression_van[,2:10])
+plot(depression_van_likert, wrap=30)
+```
+<p><strong>Vanguard Survey – Depression Questions, by Youth Arm variable
+<br>Below is a list of the ways you might have felt or behaved. Please tell me how often you have felt this way <u>during the past 7 days.</strong></u></p>
+```{r echo=FALSE}
+# Vanguard Depression questions, BY CATEGORY
+depression_van_cat1 <- likert(depression_van[,2:6], grouping=depression_van$arm)
+plot(depression_van_cat1, wrap=50)
+
+depression_van_cat2 <- likert(depression_van[,6:11], grouping=depression_van$arm)
+plot(depression_van_cat2, wrap=50)
+```
+
+### Vanguard Tables
+```{r echo=FALSE}
+# Table of Vanguard depression variables
+depressionvan_table1 <- depression_van1 %>% tabyl(arm, q21a_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table2 <- depression_van1 %>% tabyl(arm, q21b_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table3 <- depression_van1 %>% tabyl(arm, q21c_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table4 <- depression_van1 %>% tabyl(arm, q21d_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table5 <- depression_van1 %>% tabyl(arm, q21e_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table6 <- depression_van1 %>% tabyl(arm, q21f_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table7 <- depression_van1 %>% tabyl(arm, q21g_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table8 <- depression_van1 %>% tabyl(arm, q21h_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table9 <- depression_van1 %>% tabyl(arm, q21i_depression) %>% adorn_totals(c("row", "col"))
+depressionvan_table10 <- depression_van1 %>% tabyl(arm, q21j_depression) %>% adorn_totals(c("row", "col"))
+```
+<strong>I was bothered by things that usually don't bother me </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I had trouble keeping my mind on what I was doing </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt lonely </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt depressed </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt that everything was an effort  </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt hopeful about the future </strong> 
+```{r echo=FALSE}
+formattable(depressionvan_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt fearful </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>My sleep was restless </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I was happy </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I could not get going </strong>
+```{r echo=FALSE}
+formattable(depressionvan_table10 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+```{r echo=FALSE}
+# Subset Depression questions for G2C Study only
+depression_g2c1 <- dplyr::select(redcap_g2c_raw, cycle1, q33a,	q33b,	q33c,	q33d, q33e,	q33f,	q33g,	q33h, q33i,	q33j)
+# Assign labels to choices
+depression_g2c1$q33a <-  if_else( depression_g2c1$q33a==3,"5-7 days", if_else(depression_g2c1$q33a==2,"3-4 days", if_else(depression_g2c1$q33a==1,"1-2 days", if_else(depression_g2c1$q33a==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33b <-  if_else(depression_g2c1$q33b==3,"5-7 days", if_else(depression_g2c1$q33b==2,"3-4 days", if_else(depression_g2c1$q33b==1,"1-2 days", if_else(depression_g2c1$q33b==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33c <-  if_else(depression_g2c1$q33c==3,"5-7 days", if_else(depression_g2c1$q33c==2,"3-4 days", if_else(depression_g2c1$q33c==1,"1-2 days", if_else(depression_g2c1$q33c==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33d <-  if_else(depression_g2c1$q33d==3,"5-7 days", if_else(depression_g2c1$q33d==2,"3-4 days", if_else(depression_g2c1$q33d==1,"1-2 days", if_else(depression_g2c1$q33d==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33e <-  if_else(depression_g2c1$q33e==3,"5-7 days", if_else(depression_g2c1$q33e==2,"3-4 days", if_else(depression_g2c1$q33e==1,"1-2 days", if_else(depression_g2c1$q33e==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33f <-  if_else(depression_g2c1$q33f==3,"5-7 days", if_else(depression_g2c1$q33f==2,"3-4 days", if_else(depression_g2c1$q33f==1,"1-2 days", if_else(depression_g2c1$q33f==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33g <-  if_else(depression_g2c1$q33g==3,"5-7 days", if_else(depression_g2c1$q33g==2,"3-4 days",  if_else(depression_g2c1$q33g==1,"1-2 days", if_else(depression_g2c1$q33g==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33h <-  if_else(depression_g2c1$q33h==3,"5-7 days", if_else(depression_g2c1$q33h==2,"3-4 days",  if_else(depression_g2c1$q33h==1,"1-2 days", if_else(depression_g2c1$q33h==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33i <-  if_else(depression_g2c1$q33i==3,"5-7 days", if_else(depression_g2c1$q33i==2,"3-4 days",  if_else(depression_g2c1$q33i==1,"1-2 days", if_else(depression_g2c1$q33i==0,"less than 1 day", "Prefer not to answer"))))
+depression_g2c1$q33j <-  if_else(depression_g2c1$q33j==3,"5-7 days", if_else(depression_g2c1$q33j==2,"3-4 days", if_else(depression_g2c1$q33j==1,"1-2 days", if_else(depression_g2c1$q33j==0,"less than 1 day", "Prefer not to answer"))))
+#Assign variable names                   
+depression_g2c1$"I was bothered by things that usually don't bother me"<- depression_g2c1$q33a
+depression_g2c1$"I had trouble keeping my mind on what I was doing"<- depression_g2c1$q33b 
+depression_g2c1$"I felt lonely"<- depression_g2c1$q33i
+depression_g2c1$"I felt depressed" <- depression_g2c1$q33c
+depression_g2c1$"I felt that everything was an effort"<- depression_g2c1$q33d
+depression_g2c1$"I felt hopeful about the future"<- depression_g2c1$q33e
+depression_g2c1$"I felt fearful"<- depression_g2c1$q33f
+depression_g2c1$"My sleep was restless" <- depression_g2c1$q33g
+depression_g2c1$"I was happy"<- depression_g2c1$q33h
+depression_g2c1$"I could not get going" <- depression_g2c1$q33j
+#Select only the new variable names
+depression_g2c <- dplyr::select(depression_g2c1, cycle1, "I was bothered by things that usually don't bother me" ,"I had trouble keeping my mind on what I was doing", "I felt lonely", "I felt depressed", "I felt that everything was an effort","I felt hopeful about the future" ,"I felt fearful","My sleep was restless" 
+,"I was happy","I could not get going") 
+#Assign an order to the variables
+depression_g2c$"I was bothered by things that usually don't bother me" = factor(depression_g2c$"I was bothered by things that usually don't bother me", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I had trouble keeping my mind on what I was doing" = factor(depression_g2c$"I had trouble keeping my mind on what I was doing", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I felt lonely" = factor(depression_g2c$"I felt lonely", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I felt depressed" = factor(depression_g2c$"I felt depressed", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I felt that everything was an effort" = factor(depression_g2c$"I felt that everything was an effort", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I felt hopeful about the future" = factor(depression_g2c$"I felt hopeful about the future", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I felt fearful" = factor(depression_g2c$"I felt fearful", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"My sleep was restless" = factor(depression_g2c$"My sleep was restless", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I was happy" = factor(depression_g2c$"I was happy", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+depression_g2c$"I could not get going" = factor(depression_g2c$"I could not get going", levels = c("Prefer not to answer", "less than 1 day", "1-2 days", "3-4 days", "5-7 days"), ordered = TRUE)
+```
+### G2C graphs
+<strong>Below is a list of the ways you might have felt or behaved. Please tell me how often you have felt this way <u>during the past 7 days.</u></strong>
+```{r echo=FALSE}
+# G2c Depression Plot all variables
+depression_g2c_likert <- likert(depression_g2c[,2:10])
+plot(depression_g2c_likert, wrap=40, order=F)
+```
+<p><strong>G2C Survey – Depression Questions, by Youth Arm variable
+<br>Below is a list of the ways you might have felt or behaved. Please tell me how often you have felt this way <u>during the past 7 days.</strong></u></p>
+```{r echo=FALSE}
+# G2C Depression questions, BY CATEGORY
+depression_g2c_cat1 <- likert(depression_g2c[,2:6], grouping=depression_g2c$cycle1)
+plot(depression_g2c_cat1, wrap=30)
+
+depression_g2c_cat2 <- likert(depression_g2c[,7:11], grouping=depression_g2c$cycle1)
+plot(depression_g2c_cat2, wrap=30)
+```
+
+### G2C Tables
+```{r echo=FALSE}
+# Table of g2cguard depression variables
+depressiong2c_table1 <- depression_g2c1 %>% tabyl(cycle1, q33a) %>% adorn_totals(c("row", "col"))
+depressiong2c_table2 <- depression_g2c1 %>% tabyl(cycle1, q33b) %>% adorn_totals(c("row", "col"))
+depressiong2c_table3 <- depression_g2c1 %>% tabyl(cycle1, q33i) %>% adorn_totals(c("row", "col"))
+depressiong2c_table4 <- depression_g2c1 %>% tabyl(cycle1, q33c) %>% adorn_totals(c("row", "col"))
+depressiong2c_table5 <- depression_g2c1 %>% tabyl(cycle1, q33d) %>% adorn_totals(c("row", "col"))
+depressiong2c_table6 <- depression_g2c1 %>% tabyl(cycle1, q33e) %>% adorn_totals(c("row", "col"))
+depressiong2c_table7 <- depression_g2c1 %>% tabyl(cycle1, q33f) %>% adorn_totals(c("row", "col"))
+depressiong2c_table8 <- depression_g2c1 %>% tabyl(cycle1, q33g) %>% adorn_totals(c("row", "col"))
+depressiong2c_table9 <- depression_g2c1 %>% tabyl(cycle1, q33h) %>% adorn_totals(c("row", "col"))
+depressiong2c_table10 <- depression_g2c1 %>% tabyl(cycle1, q33j) %>% adorn_totals(c("row", "col"))
+```
+<strong>I was bothered by things that usually don't bother me </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I had trouble keeping my mind on what I was doing </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt lonely </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt depressed </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt that everything was an effort  </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt hopeful about the future </strong> 
+```{r echo=FALSE}
+formattable(depressiong2c_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I felt fearful </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>My sleep was restless </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I was happy </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+<strong>I could not get going </strong>
+```{r echo=FALSE}
+formattable(depressiong2c_table10 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+```
+
+
+### Vanguard vs. G2C
+<strong>Please answer the following questions based on how you felt in the past 7 days.</strong>
+```{r echo=FALSE}
+# Merge the vanguard and g2c data for comparison
+depression_g2c_merge <- dplyr::select(depression_g2c, -cycle1)
+depression_g2c_merge$study <- "Grads2Careers"
+depression_van_merge <- dplyr::select(depression_van, -arm)
+depression_van_merge$study <- "Vanguard"
+depression_merged <- rbind(depression_g2c_merge,depression_van_merge)
+depression_merged1 <- dplyr::select(depression_merged, "I was bothered by things that usually don't bother me" ,"I had trouble keeping my mind on what I was doing", "I felt lonely", "I felt depressed", "I felt that everything was an effort")
+depression_merged2 <- dplyr::select(depression_merged, "I felt hopeful about the future" ,"I felt fearful","My sleep was restless" 
+,"I was happy","I could not get going")
+
+# MERGED Depression Plot by Study
+depression_merged_cat1 <- likert(depression_merged1, grouping=depression_merged$study)
+plot(depression_merged_cat1)
+depression_merged_cat2 <- likert(depression_merged2, grouping=depression_merged$study)
+plot(depression_merged_cat2)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+####################### Vanguard ####################
+# Select Vanguard Depression variables and create new variables for total score and dichotomous variable
+depression_van_total <- dplyr::select(redcap_van_survey, arm, q21a_depression, q21b_depression, q21c_depression, q21d_depression, q21e_depression, q21f_depression, q21g_depression, q21h_depression, q21i_depression, q21j_depression) 
+# Reverse Code 2 Variables
+depression_van_total$q21i_reversed <- ifelse(depression_van_total$q21i_depression==0,3,ifelse(depression_van_total$q21i_depression==1,2,ifelse(depression_van_total$q21i_depression==2,1,0)))
+depression_van_total$q21f_reversed <- ifelse(depression_van_total$q21f_depression==0,3,ifelse(depression_van_total$q21f_depression==1,2,ifelse(depression_van_total$q21f_depression==2,1,0)))
+
+# Create a Depression score w/ and w/o "Prefer not to answer"
+depression_van_total$depression_total <- depression_van_total$q21a_depression + depression_van_total$q21b_depression + depression_van_total$q21c_depression + depression_van_total$q21d_depression + depression_van_total$q21e_depression + depression_van_total$q21f_reversed + depression_van_total$q21g_depression + depression_van_total$q21h_depression + depression_van_total$q21i_reversed + depression_van_total$q21j_depression
+depression_van_total$depression_total_no_refused <- ifelse(depression_van_total$depression_total>30, NA, depression_van_total$depression_total)
+# Flagged if score 9 or greater
+depression_van_total$depression_flagged <- if_else(depression_van_total$depression_total>=9, 1,0)
+# Rename Vanguard variables
+depression_van_total$"I was bothered by things that usually don't bother me"<- depression_van_total$q21a_depression 
+depression_van_total$"I had trouble keeping my mind on what I was doing"<- depression_van_total$q21b_depression 
+depression_van_total$"I felt lonely"<- depression_van_total$q21c_depression 
+depression_van_total$"I felt depressed" <- depression_van_total$q21d_depression
+depression_van_total$"I felt that everything was an effort"<- depression_van_total$q21e_depression 
+depression_van_total$"I felt hopeful about the future"<- depression_van_total$q21f_reversed 
+depression_van_total$"I felt fearful"<- depression_van_total$q21g_depression 
+depression_van_total$"My sleep was restless" <- depression_van_total$q21h_depression
+depression_van_total$"I was happy"<- depression_van_total$q21i_reversed 
+depression_van_total$"I could not get going" <- depression_van_total$q21j_depression
+#Select only the new variable names
+depression_van_totals <- dplyr::select(depression_van_total, depression_total, depression_total_no_refused, depression_flagged, "I was bothered by things that usually don't bother me" ,"I had trouble keeping my mind on what I was doing", "I felt lonely", "I felt depressed", "I felt that everything was an effort","I felt hopeful about the future" ,"I felt fearful","My sleep was restless" 
+,"I was happy","I could not get going")
+
+######################## G2C #######################
+# Add variable names, total and select new variables for G2C data
+depression_g2c_total <- dplyr::select(redcap_g2c_raw, cycle.y, q33a, q33b, q33c,	q33d, q33e,	q33f,	q33g,	q33h, q33i,	q33j)
+# Reverse Code 2 Variables
+depression_g2c_total$q33e_reversed <- ifelse(depression_g2c_total$q33e==0,3,ifelse(depression_g2c_total$q33e==1,2,ifelse(depression_g2c_total$q33e==2,1,0)))
+depression_g2c_total$q33h_reversed <- ifelse(depression_g2c_total$q33h==0,3,ifelse(depression_g2c_total$q33h==1,2,ifelse(depression_g2c_total$q33h==2,1,0)))
+# Create a Depression score w/ and w/o "Prefer not to answer"
+depression_g2c_total$depression_total <- depression_g2c_total$q33a + depression_g2c_total$q33b + depression_g2c_total$q33c + depression_g2c_total$q33d + depression_g2c_total$q33e_reversed + depression_g2c_total$q33f + depression_g2c_total$q33g + depression_g2c_total$q33h_reversed + depression_g2c_total$q33i + depression_g2c_total$q33j
+depression_g2c_total$depression_total_no_refused <- ifelse(depression_g2c_total$depression_total>30, NA, depression_g2c_total$depression_total)
+# Flagged if score 9 or greater
+depression_g2c_total$depression_flagged <- if_else(depression_g2c_total$depression_total>=9, 1,0)
+# Rename G2C variable
+depression_g2c_total$"I was bothered by things that usually don't bother me"<- depression_g2c_total$q33a
+depression_g2c_total$"I had trouble keeping my mind on what I was doing"<- depression_g2c_total$q33b 
+depression_g2c_total$"I felt lonely"<- depression_g2c_total$q33i
+depression_g2c_total$"I felt depressed" <- depression_g2c_total$q33c
+depression_g2c_total$"I felt that everything was an effort"<- depression_g2c_total$q33d
+depression_g2c_total$"I felt hopeful about the future"<- depression_g2c_total$q33e_reversed
+depression_g2c_total$"I felt fearful"<- depression_g2c_total$q33f
+depression_g2c_total$"My sleep was restless" <- depression_g2c_total$q33g
+depression_g2c_total$"I was happy"<- depression_g2c_total$q33h_reversed
+depression_g2c_total$"I could not get going" <- depression_g2c_total$q33j
+#Select only the new variable names
+depression_g2c_totals <- dplyr::select(depression_g2c_total, depression_total, depression_total_no_refused, depression_flagged,"I was bothered by things that usually don't bother me" ,"I had trouble keeping my mind on what I was doing", "I felt lonely", "I felt depressed", "I felt that everything was an effort","I felt hopeful about the future" ,"I felt fearful","My sleep was restless" 
+,"I was happy","I could not get going") 
+```
+
+```{r echo=FALSE}
+# Combine the studies
+depression1 <- as.data.frame(ftable(depression_van_totals$depression_total_no_refused))
+depression1$Vanguard <- depression1$Freq
+depression_van_totals$study <-"Vanguard"
+
+
+depression2 <- as.data.frame(ftable(depression_g2c_totals$depression_total_no_refused))
+depression2$G2C <- depression2$Freq
+depression_g2c_totals$study <- "G2C"
+
+depression_total_merged <- rbind(depression_g2c_totals, depression_van_totals)
+```
+<strong>Histogram of Depression Scores (total of 10 variables, range:0-30): Vanguard vs. G2C </strong>
+```{r echo=FALSE}
+# Create a grouped bar chart
+depression1$subgroup <- "Vanguard"
+depression1$group <- depression1$Var1
+depression1$values <- depression1$Freq
+depression1a <- dplyr::select(depression1, subgroup, group, values)
+depression2$subgroup <- "G2c"
+depression2$group <- depression2$Var1
+depression2$values <- depression2$Freq
+depression2a <- dplyr::select(depression2, subgroup, group, values)
+depression3 <- rbind(depression1a, depression2a)
+
+ggplot(depression3, 
+       aes(x=group, 
+           y=values, 
+           fill=subgroup)) + 
+    geom_bar(position="dodge", 
+             stat="identity")
+        
+```
+
+```{r echo=FALSE}
+depression_total_merged1 <- dplyr::filter(depression_total_merged, !is.na(depression_total) & depression_total <=30)
+histogram(~ depression_total | study,
+          main = "Depression Score, Percent Comparison of Vanguard and G2C",
+          xlab = "Score",
+          data=depression_total_merged1,
+          type="percent",
+          layout=c(1,2))      #  columns and rows of individual plots
+```
+
+```{r echo=FALSE}
+wilcox.test(depression_total_merged$depression_total_no_refused ~ depression_total_merged$study)
+
+t.test(depression_total_merged$depression_total_no_refused ~ depression_total_merged$study)
+```
+Depression score comparison
+```{r echo=FALSE}
+boxplot(depression_total_merged$depression_total_no_refused ~ depression_total_merged$study, col="#69b3a2" , ylab="Total Depression Score", xlab = "Study")
+```
+### 5. Housing[docs](housing.html)
