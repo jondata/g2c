@@ -9,10 +9,7 @@ output:
     #css: styles.css
     number_sections: false
     fig_caption: true
-    toc: true
-      toc_depth: 2
-      toc_float: true
-      collapsed: false
+
 ---
 
 ```{r global_options, include=FALSE}
@@ -30,6 +27,8 @@ library(likert)
 library(kableExtra)
 library(formattable)
 library(janitor)
+library(openxlsx)
+
 ```
 
 # Content
@@ -47,45 +46,45 @@ The influence of health on employment among young people in Baltimore - HEYBMORE
 ## 1. Food Insecurity
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Import G2C REDCap data for comparison to Vanguard
-redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
-redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
-redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
+redcap_g2c_labels=read.csv('/Users/jon/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-08-25_1547.csv')
+redcap_g2c_raw1 = read.csv('/Users/jon/Downloads/TheInfluenceOfHealth_DATA_2021-08-25_1547.csv')
+redcap_g2c_raw2 = dplyr::filter(redcap_g2c_raw1, heybmore_survey_complete==2)
 redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
 redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
 redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
 # ETO data - Cycle 2
-eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
-eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject.Unique.Identifier`
 eto2_demo$cycle <- eto2_demo$`Cycle:`
-eto2_demo$name_first <- eto2_demo$`First Name`
-eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$name_first <- eto2_demo$`First.Name`
+eto2_demo$name_last <- eto2_demo$`Last.Name`
 eto2_demo$gender <- eto2_demo$`Gender_3753`
 eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
 eto2_demo$race <- eto2_demo$`Race-Custom`
 eto2_demo$dob <- eto2_demo$DOB
 eto2_demo$source <- "eto2"
-eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
 eto2_prog$subjectid <- eto2_prog$ID
-eto2_prog$program <- eto2_prog$`Current Program`
+eto2_prog$program <- eto2_prog$`Current.Program`
 # ETO data - Cycle 3
-eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
-eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject.Id`
 eto3_demo$cycle <- eto3_demo$`Cycle:`
-eto3_demo$name_first <- eto3_demo$`First Name`
-eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$name_first <- eto3_demo$`First.Name`
+eto3_demo$name_last <- eto3_demo$`Last.Name`
 eto3_demo$gender <- eto3_demo$`Gender_3753`
 eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
 eto3_demo$race <- eto3_demo$`Race-Custom`
 eto3_demo$dob <- eto3_demo$DOB
 eto3_demo$source <- "eto3"
-eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
 eto3_prog$subjectid <- eto3_prog$SubjectID
-eto3_prog$program <- eto3_prog$`Program Name`
+eto3_prog$program <- eto3_prog$`Program.Name`
 # Salesforce data
-salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
-salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
-salesforce2$name_first <- salesforce2$`Contact: First Name`
-salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce1 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact:.First.Name`
+salesforce2$name_last <- salesforce2$`Contact:.Last.Name`
 salesforce2$gender_sales <- salesforce2$`Gender`
 salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
 salesforce2$race_sales <- salesforce2$`Race`
@@ -124,8 +123,8 @@ redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", re
 
 ```{r include=FALSE}
 # Import Vanguard data from REDCap project
-redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
-redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
+redcap_labels=read.csv('/Users/jon/Downloads/AssessingAdolescents_DATA_LABELS_2021-08-26_1656.csv')
+redcap_raw_van = read.csv('/Users/jon/Downloads/AssessingAdolescents_DATA_2021-08-26_1656.csv')
 redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
 
 redcap_van_survey$arm <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
@@ -230,39 +229,39 @@ foodvan_table9 <- dplyr::select(foodvan_table9, arm, "NA_", "Prefer not to answe
 <br>
 <strong>"...did you worry that food at home would run out before you/your household got money to buy more?" </strong>
 ```{r echo=FALSE}
-formattable(foodvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did the food that you/your household bought run out, and you didnt have money to get more?" </strong>
 ```{r echo=FALSE}
-formattable(foodvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"</strong>
 ```{r echo=FALSE}
-formattable(foodvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...were you not able to eat a balanced meal because you/your household didnt have enough money?"</strong>
 ```{r echo=FALSE}
-formattable(foodvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did you have to eat less because you/your household didnt have enough money to buy food?"  </strong>
 ```{r echo=FALSE}
-formattable(foodvan_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...has the size of your meals been cut because you/your household didnt have enough money for food?"</strong>
 ```{r echo=FALSE}
-formattable(foodvan_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did you have to skip a meal because you/your household didnt have enough money for food?"</strong>
 ```{r echo=FALSE}
-formattable(foodvan_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...were you hungry but didnt eat because you/your household didnt have enough food?"</strong>
 ```{r echo=FALSE}
-formattable(foodvan_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did you not eat for a whole day because you/your household didnt have enough money for food?"</strong>
 ```{r echo=FALSE}
-formattable(foodvan_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodvan_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ```{r echo=FALSE}
@@ -362,39 +361,39 @@ foodg2c_table9 <- dplyr::select(foodg2c_table9, cycle1, "Prefer not to answer", 
 <br>
 <strong>"...did you worry that food at home would run out before you/your household got money to buy more?" </strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did the food that you/your household bought run out, and you didnt have money to get more?" </strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did your meals only include a few kinds of cheap foods because you/your household was running out of money to buy food?"</strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...were you not able to eat a balanced meal because you/your household didnt have enough money?"</strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did you have to eat less because you/your household didnt have enough money to buy food?"  </strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...has the size of your meals been cut because you/your household didnt have enough money for food?"</strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did you have to skip a meal because you/your household didnt have enough money for food?"</strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...were you hungry but didnt eat because you/your household didnt have enough food?"</strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"...did you not eat for a whole day because you/your household didnt have enough money for food?"</strong>
 ```{r echo=FALSE}
-formattable(foodg2c_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(foodg2c_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ### Vanguard vs. G2C
@@ -544,46 +543,39 @@ boxplot(food_total_merged$food_total_no_refused ~ food_total_merged$study, col="
 
 ## 2. Anxiety
 ```{r message=FALSE, warning=FALSE, include=FALSE}
-# Import G2C REDCap data for comparison to Vanguard
-redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
-redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
-redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
-redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
-redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
-redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
 # ETO data - Cycle 2
-eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
-eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject.Unique.Identifier`
 eto2_demo$cycle <- eto2_demo$`Cycle:`
-eto2_demo$name_first <- eto2_demo$`First Name`
-eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$name_first <- eto2_demo$`First.Name`
+eto2_demo$name_last <- eto2_demo$`Last.Name`
 eto2_demo$gender <- eto2_demo$`Gender_3753`
 eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
 eto2_demo$race <- eto2_demo$`Race-Custom`
 eto2_demo$dob <- eto2_demo$DOB
 eto2_demo$source <- "eto2"
-eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
 eto2_prog$subjectid <- eto2_prog$ID
-eto2_prog$program <- eto2_prog$`Current Program`
+eto2_prog$program <- eto2_prog$`Current.Program`
 # ETO data - Cycle 3
-eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
-eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject.Id`
 eto3_demo$cycle <- eto3_demo$`Cycle:`
-eto3_demo$name_first <- eto3_demo$`First Name`
-eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$name_first <- eto3_demo$`First.Name`
+eto3_demo$name_last <- eto3_demo$`Last.Name`
 eto3_demo$gender <- eto3_demo$`Gender_3753`
 eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
 eto3_demo$race <- eto3_demo$`Race-Custom`
 eto3_demo$dob <- eto3_demo$DOB
 eto3_demo$source <- "eto3"
-eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
 eto3_prog$subjectid <- eto3_prog$SubjectID
-eto3_prog$program <- eto3_prog$`Program Name`
+eto3_prog$program <- eto3_prog$`Program.Name`
 # Salesforce data
-salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
-salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
-salesforce2$name_first <- salesforce2$`Contact: First Name`
-salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce1 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact:.First.Name`
+salesforce2$name_last <- salesforce2$`Contact:.Last.Name`
 salesforce2$gender_sales <- salesforce2$`Gender`
 salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
 salesforce2$race_sales <- salesforce2$`Race`
@@ -622,8 +614,6 @@ redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", re
 
 ```{r include=FALSE}
 # Import Vanguard data from REDCap project
-redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
-redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
 redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
 
 redcap_van_survey$arm1 <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
@@ -687,19 +677,19 @@ anxietyvan_table4 <- dplyr::select(anxietyvan_table4, arm, "NA_","Prefer not to 
 ```
 <strong>"I felt like something awful might happen" </strong>
 ```{r echo=FALSE}
-formattable(anxietyvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"I felt nervous"</strong>
 ```{r echo=FALSE}
-formattable(anxietyvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"I felt worried"</strong>
 ```{r echo=FALSE}
-formattable(anxietyvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"I worried when I was at home"</strong>
 ```{r echo=FALSE}
-formattable(anxietyvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ```{r echo=FALSE}
@@ -761,19 +751,19 @@ anxietyg2c_table4 <- dplyr::select(anxietyg2c_table4, cycle1, "Prefer not to ans
 ```
 <strong>"I felt like something awful might happen"</strong>
 ```{r echo=FALSE}
-formattable(anxietyg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"I felt nervous" </strong>
 ```{r echo=FALSE}
-formattable(anxietyg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"I felt worried"</strong>
 ```{r echo=FALSE}
-formattable(anxietyg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"I worried when I was at home" </strong>
 ```{r echo=FALSE}
-formattable(anxietyg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(anxietyg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ### Vanguard vs. G2C
@@ -884,45 +874,43 @@ boxplot(anxiety_total_merged$anxiety_total_no_refused ~ anxiety_total_merged$stu
 ## 3. PTSD / Trauma
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Import G2C REDCap data for comparison to Vanguard
-redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
-redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
 redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
 redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
 redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
 redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
 # ETO data - Cycle 2
-eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
-eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject.Unique.Identifier`
 eto2_demo$cycle <- eto2_demo$`Cycle:`
-eto2_demo$name_first <- eto2_demo$`First Name`
-eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$name_first <- eto2_demo$`First.Name`
+eto2_demo$name_last <- eto2_demo$`Last.Name`
 eto2_demo$gender <- eto2_demo$`Gender_3753`
 eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
 eto2_demo$race <- eto2_demo$`Race-Custom`
 eto2_demo$dob <- eto2_demo$DOB
 eto2_demo$source <- "eto2"
-eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
 eto2_prog$subjectid <- eto2_prog$ID
-eto2_prog$program <- eto2_prog$`Current Program`
+eto2_prog$program <- eto2_prog$`Current.Program`
 # ETO data - Cycle 3
-eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
-eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject.Id`
 eto3_demo$cycle <- eto3_demo$`Cycle:`
-eto3_demo$name_first <- eto3_demo$`First Name`
-eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$name_first <- eto3_demo$`First.Name`
+eto3_demo$name_last <- eto3_demo$`Last.Name`
 eto3_demo$gender <- eto3_demo$`Gender_3753`
 eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
 eto3_demo$race <- eto3_demo$`Race-Custom`
 eto3_demo$dob <- eto3_demo$DOB
 eto3_demo$source <- "eto3"
-eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
 eto3_prog$subjectid <- eto3_prog$SubjectID
-eto3_prog$program <- eto3_prog$`Program Name`
+eto3_prog$program <- eto3_prog$`Program.Name`
 # Salesforce data
-salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
-salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
-salesforce2$name_first <- salesforce2$`Contact: First Name`
-salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce1 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact:.First.Name`
+salesforce2$name_last <- salesforce2$`Contact:.Last.Name`
 salesforce2$gender_sales <- salesforce2$`Gender`
 salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
 salesforce2$race_sales <- salesforce2$`Race`
@@ -961,8 +949,6 @@ redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", re
 
 ```{r include=FALSE}
 # Import Vanguard data from REDCap project
-redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
-redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
 redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
 
 redcap_van_survey$arm <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
@@ -1029,19 +1015,19 @@ ptsdvan_table4 <- dplyr::select(ptsdvan_table4, arm, NA_, "Prefer not to answer"
 ```
 <strong>"Suddenly feeling or acting as if the stressful experience were actually happening again" </strong>
 ```{r echo=FALSE}
-formattable(ptsdvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"Avoiding external reminders of the stressful experience"</strong>
 ```{r echo=FALSE}
-formattable(ptsdvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"Feeling distant or cut off from other people"</strong>
 ```{r echo=FALSE}
-formattable(ptsdvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"Irritable behavior, angry outbursts, or acting aggressively"</strong>
 ```{r echo=FALSE}
-formattable(ptsdvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ```{r echo=FALSE}
@@ -1105,19 +1091,19 @@ ptsdg2c_table4 <- dplyr::select(ptsdg2c_table4, cycle1, "Prefer not to answer", 
 ```
 <strong>"Suddenly feeling or acting as if the stressful experience were actually happening again"</strong>
 ```{r echo=FALSE}
-formattable(ptsdg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdg2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"Avoiding external reminders of the stressful experience" </strong>
 ```{r echo=FALSE}
-formattable(ptsdg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdg2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"Feeling distant or cut off from other people"</strong>
 ```{r echo=FALSE}
-formattable(ptsdg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdg2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>"Irritable behavior, angry outbursts, or acting aggressively" </strong>
 ```{r echo=FALSE}
-formattable(ptsdg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(ptsdg2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ### Vanguard vs. G2C
@@ -1240,45 +1226,43 @@ library(janitor)
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Import G2C REDCap data for comparison to Vanguard
-redcap_g2c_labels=read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_LABELS_2021-06-01_1616.csv')
-redcap_g2c_raw1 = read.csv('/Users/jonkawatachi/Downloads/TheInfluenceOfHealth_DATA_2021-06-01_1656.csv')
 redcap_g2c_raw2 = filter(redcap_g2c_raw1, heybmore_survey_complete==2)
 redcap_g2c_raw2$name_first <- redcap_g2c_raw2$info_fn
 redcap_g2c_raw2$name_last <- redcap_g2c_raw2$info_ln
 redcap_g2c_raw2$dob <- redcap_g2c_raw2$dob
 # ETO data - Cycle 2
-eto2_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
-eto2_demo$subjectid <- eto2_demo$`Subject Unique Identifier`
+eto2_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Demographics")
+eto2_demo$subjectid <- eto2_demo$`Subject.Unique.Identifier`
 eto2_demo$cycle <- eto2_demo$`Cycle:`
-eto2_demo$name_first <- eto2_demo$`First Name`
-eto2_demo$name_last <- eto2_demo$`Last Name`
+eto2_demo$name_first <- eto2_demo$`First.Name`
+eto2_demo$name_last <- eto2_demo$`Last.Name`
 eto2_demo$gender <- eto2_demo$`Gender_3753`
 eto2_demo$ethnic <- eto2_demo$`Ethnicity-Custom`
 eto2_demo$race <- eto2_demo$`Race-Custom`
 eto2_demo$dob <- eto2_demo$DOB
 eto2_demo$source <- "eto2"
-eto2_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
+eto2_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHU_Request022021_Demographics(cycle 2).xlsx', sheet="Enrolled Current Program")
 eto2_prog$subjectid <- eto2_prog$ID
-eto2_prog$program <- eto2_prog$`Current Program`
+eto2_prog$program <- eto2_prog$`Current.Program`
 # ETO data - Cycle 3
-eto3_demo = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
-eto3_demo$subjectid <- eto3_demo$`Subject Id`
+eto3_demo = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Demographics")
+eto3_demo$subjectid <- eto3_demo$`Subject.Id`
 eto3_demo$cycle <- eto3_demo$`Cycle:`
-eto3_demo$name_first <- eto3_demo$`First Name`
-eto3_demo$name_last <- eto3_demo$`Last Name`
+eto3_demo$name_first <- eto3_demo$`First.Name`
+eto3_demo$name_last <- eto3_demo$`Last.Name`
 eto3_demo$gender <- eto3_demo$`Gender_3753`
 eto3_demo$ethnic <- eto3_demo$`Ethnicity-Custom`
 eto3_demo$race <- eto3_demo$`Race-Custom`
 eto3_demo$dob <- eto3_demo$DOB
 eto3_demo$source <- "eto3"
-eto3_prog = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
+eto3_prog = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/ETO Data/JHURequest022021_Cycle3.xlsx', sheet="Training")
 eto3_prog$subjectid <- eto3_prog$SubjectID
-eto3_prog$program <- eto3_prog$`Program Name`
+eto3_prog$program <- eto3_prog$`Program.Name`
 # Salesforce data
-salesforce1 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
-salesforce2 = read_excel('/Users/jonkawatachi/Documents/PFRH/Grads to Careers/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
-salesforce2$name_first <- salesforce2$`Contact: First Name`
-salesforce2$name_last <- salesforce2$`Contact: Last Name`
+salesforce1 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210208 - unlocked.xlsx')
+salesforce2 = read.xlsx('/Users/jon/Desktop/PFRH/Grads2Careers - HEYBMORE/Data/Salesforce data/Salesforce Data for JHU 210209 - unlocked.xlsx')
+salesforce2$name_first <- salesforce2$`Contact:.First.Name`
+salesforce2$name_last <- salesforce2$`Contact:.Last.Name`
 salesforce2$gender_sales <- salesforce2$`Gender`
 salesforce2$ethnic_sales <- salesforce2$`Ethnicity`
 salesforce2$race_sales <- salesforce2$`Race`
@@ -1317,8 +1301,6 @@ redcap_g2c_raw$cycle1<- ifelse(is.na(redcap_g2c_raw$cycle.y), "Undetermined", re
 
 ```{r include=FALSE}
 # Import Vanguard data from REDCap project
-redcap_labels=read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_LABELS_2021-06-04_1621.csv')
-redcap_raw_van = read.csv('/Users/jonkawatachi/Downloads/AssessingAdolescents_DATA_2021-06-04_1604.csv')
 redcap_van_survey <- filter(redcap_raw_van, redcap_event_name=="youth_arm_1" | redcap_event_name=="youth_arm_2" | redcap_event_name=="youth_arm_3" | redcap_event_name=="youth_arm_4")
 
 redcap_van_survey$arm <- if_else(redcap_van_survey$redcap_event_name=="youth_arm_1", "Youth Arm 1", if_else(redcap_van_survey$redcap_event_name=="youth_arm_2", "Youth Arm 2", if_else(redcap_van_survey$redcap_event_name=="youth_arm_3", "Youth Arm 3", if_else(redcap_van_survey$redcap_event_name=="youth_arm_4", "Youth Arm 4", "NA"))))
@@ -1399,43 +1381,43 @@ depressionvan_table10 <- depression_van1 %>% tabyl(arm, q21j_depression) %>% ado
 ```
 <strong>I was bothered by things that usually don't bother me </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I had trouble keeping my mind on what I was doing </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt lonely </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt depressed </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt that everything was an effort  </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt hopeful about the future </strong> 
 ```{r echo=FALSE}
-formattable(depressionvan_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt fearful </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>My sleep was restless </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I was happy </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I could not get going </strong>
 ```{r echo=FALSE}
-formattable(depressionvan_table10 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressionvan_table10 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 ```{r echo=FALSE}
@@ -1512,43 +1494,43 @@ depressiong2c_table10 <- depression_g2c1 %>% tabyl(cycle1, q33j) %>% adorn_total
 ```
 <strong>I was bothered by things that usually don't bother me </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table1 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I had trouble keeping my mind on what I was doing </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table2 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt lonely </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table3 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt depressed </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table4 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt that everything was an effort  </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table5 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt hopeful about the future </strong> 
 ```{r echo=FALSE}
-formattable(depressiong2c_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table6 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I felt fearful </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table7 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>My sleep was restless </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table8 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I was happy </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table9 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 <strong>I could not get going </strong>
 ```{r echo=FALSE}
-formattable(depressiong2c_table10 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1) %>% adorn_ns(position = "front"))
+formattable(depressiong2c_table10 %>% adorn_percentages("row") %>% adorn_pct_formatting(digits = 1))
 ```
 
 
